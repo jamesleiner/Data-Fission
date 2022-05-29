@@ -21,15 +21,6 @@ null = as.numeric(args[4])
 grid_size = as.numeric(args[5])
 repeat.times = as.numeric(args[6])
 
-print(type)
-print(tau)
-print(alt)
-print(null)
-print(grid_size)
-print(repeat.times)
-
-
-
 rho <- 0
 seed <- 1
 set.seed(seed)
@@ -49,7 +40,7 @@ score.params <- list(cov.formula = cov.formula,
 H0 <- apply(x, 1, function(coord){sum(coord^2) < 900})
 mu <- ifelse(H0, alt, null)
 
-wrapper_func <- function(x,mu,tau,alpha.list,num.steps.update.score,scope.params,alt,null,type="normal",seed=seed) {
+wrapper_func <- function(x,mu,tau,alpha.list,num.steps.update.score,scope.params,alt,null,type=type,seed=seed) {
   res <- tryCatch(experiment_masked(x,mu,tau,alpha.list,num.steps.update.score,scope.params,alt,null,type=type,seed=seed) ,
            error = function(e){
              print(e)
