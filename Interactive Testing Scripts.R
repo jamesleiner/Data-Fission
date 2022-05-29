@@ -1,0 +1,174 @@
+
+sig.gen <- function(n, mu, rho, type){
+  if (type == 1){
+    new.rho <- rho / n
+    Sigma <- diag(rep(1 - new.rho, n)) + new.rho
+    z <- mvrnorm(1, mu, Sigma)
+  } else if (type == 2){
+    m <- ceiling(n / 2)
+    ind1 <- sample(n, m)
+    ind2 <- (1:n)[-ind1]
+    Sigma <- diag(rep(0, n))
+    Sigma[ind1, ind1] <- abs(rho)
+    Sigma[ind2, ind2] <- abs(rho)
+    Sigma[ind1, ind2] <- -abs(rho)
+    Sigma[ind2, ind1] <- -abs(rho)
+    diag(Sigma) <- 1            
+    z <- mvrnorm(1, mu, Sigma)
+  } else if (type == 3){
+    Sigma <- diag(rep(0, n))
+    for (i in 1:n){
+      Sigma[i, ] <- rho * (1 - 2 * abs(rho))^abs(1:n - i)
+    }
+    diag(Sigma) <- 1
+  }
+  return(Sigma)
+}
+
+
+
+summary.BH <- function(pvals, H0,values, mu,variance,
+                       alpha.list = seq(0.01, 0.3, 0.01)){
+  n <- length(pvals)
+  nfrej <- sapply(alpha.list, function(alpha){
+    khat <- max(c(0,which(sort(pvals)<=alpha*(1:n)/n)))
+    alpha <- alpha * khat / n
+    sum(pvals[!H0] < alpha, na.rm = TRUE)
+  })
+  ntrej <- sapply(alpha.list, function(alpha){
+    khat <- max(c(0,which(sort(pvals)<=alpha*(1:n)/n)))
+    alpha <- alpha * khat / n
+    sum(pvals[H0] < alpha, na.rm = TRUE)
+  })
+  true_mean <- sapply(alpha.list, function(alpha){
+    khat <- max(c(0,which(sort(pvals)<=alpha*(1:n)/n)))
+    alpha <- alpha * khat / n
+    mean(mu[pvals < alpha], na.rm = TRUE)
+  })
+  measured_mean <- sapply(alpha.list, function(alpha){
+    khat <- max(c(0,which(sort(pvals)<=alpha*(1:n)/n)))
+    alpha <- alpha * khat / n
+    mean(values[pvals < alpha], na.rm = TRUE)
+  })
+  nrej <- nfrej + ntrej
+  FDP <- nfrej / pmax(nrej, 1)
+  power <- ntrej / max(sum(H0), 1)
+  sd <- sqrt(variance/nrej)
+  df <- data.frame(nrej = nrej, FDP = FDP, power = power, mean=measured_mean, true_mean=true_mean,sd=sd)
+  return(df)
+}
+
+
+summary.AdaPT <- function(adapt, H0, pvals,vals,mu,variance){
+  nfrej <- apply(adapt$s, 2, function(s){
+    tmp <- (pvals <= s)
+    sum(tmp[!H0], na.rm = TRUE)
+  })
+  ntrej <- apply(adapt$s, 2, function(s){
+    tmp <- (pvals <= s)        
+    sum(tmp[H0], na.rm = TRUE)
+  })
+  true_mean <- apply(adapt$s, 2, function(s){
+    tmp <- (pvals <= s)        
+    mean(mu[tmp], na.rm = TRUE)
+  })
+  measured_mean <- apply(adapt$s, 2, function(s){
+    tmp <- (pvals <= s)        
+    mean(vals[tmp], na.rm = TRUE)
+  })
+  
+  nrej <- nfrej + ntrej
+  FDP <- nfrej / pmax(nrej, 1)
+  power <- ntrej / max(sum(H0),1)
+  sd <- sqrt(variance/nrej)
+  df <- data.frame(nrej = nrej, FDP = FDP, power = power, mean=measured_mean, true_mean =true_mean,sd=sd)
+  return(df)
+}
+
+summary.STAR <- function(STAR.obj, H0,vals,mu,variance){
+  nfrej <- apply(STAR.obj$mask, 2, function(x){
+    sum(x[!H0], na.rm = TRUE)
+  })
+  ntrej <- apply(STAR.obj$mask, 2, function(x){
+    sum(x[H0], na.rm = TRUE)
+  })
+  true_mean <- apply(STAR.obj$mask, 2, function(x){
+    mean(mu[x])
+  })
+  measured_mean <- apply(STAR.obj$mask, 2, function(x){
+    mean(vals[x])
+  })
+  nrej <- nfrej + ntrej
+  FDP <- nfrej / pmax(nrej, 1)
+  power <- ntrej / max(sum(H0),1)
+  sd <- sqrt(variance/nrej)
+  df <- data.frame(nrej = nrej, FDP = FDP, power = power, mean=measured_mean, true_mean =true_mean,sd=sd)
+  return(df)
+}
+
+
+experiment_masked <- function(x,mu,tau,alpha.list,num.steps.update.score,scope.params,alt,null,type="normal",filename=NULL,seed=1){
+  set.seed(seed)
+  if(type == "normal"){
+    var <- sig.gen(n,mu,0,1)
+    Y <- mvrnorm(1,mu,var)
+    Z <- mvrnorm(1,rep(0,n),var)
+    f_Y <- Y+tau*Z
+    g_Y <- Y-(1/tau)*Z
+    pvals <- 1 - pnorm(Y)
+    pvals_mask <- 1- pnorm(f_Y,sd=sqrt((1+tau**2)))
+  }
+  if(type == "poisson"){
+    Y <- rpois(n,mu)
+    Z <- rbinom(n,Y,tau)
+    g_Y = Y - Z
+    f_Y = Z
+    Y_minus = sapply(Y,function(x) max(x-1,0))
+    f_Y_minus = sapply(f_Y,function(x) max(x-1,0))
+    U1 <- runif(length(mu),0,1)
+    U2 <- runif(length(mu),0,1)
+    rand <- U1*ppois(Y, null) + (1-U1)* ppois(Y_minus, null)
+    rand_F <- U2*ppois(f_Y, null*tau) + (1-U2)* ppois(f_Y_minus, null*tau)
+    pvals <- 1-rand
+    pvals_mask <- 1 - rand_F
+  }
+  
+  STAR.obj1 <- STAR.convex(pvals, x, 
+                           alpha.list = alpha.list,
+                           type = "model-assist",
+                           update.mask.params = list(dir = "min"),
+                           num.steps.update.score = num.steps.update.score,
+                           score.params = score.params)
+  AdaPT.obj1 <- AdaPT(x, pvals, cov.formula = cov.formula,
+                      q.list = alpha.list, plot.quiet = TRUE)
+  
+  
+  BH.result_full <- summary.BH(pvals, H0,Y,mu,1, alpha.list = alpha.list)
+  STAR.result_full <- summary.STAR(STAR.obj1,H0,Y,mu,1)
+  adapt.result_full <- summary.AdaPT(AdaPT.obj1, H0, pvals,Y,mu,1)
+
+  
+  STAR.obj2 <- STAR.convex(pvals_mask, x, 
+                           alpha.list = alpha.list,
+                           type = "model-assist",
+                           update.mask.params = list(dir = "min"),
+                           num.steps.update.score = num.steps.update.score,
+                           score.params = score.params)
+  AdaPT.obj2 <- AdaPT(x, pvals_mask, cov.formula = cov.formula,
+                      q.list = alpha.list, plot.quiet = TRUE)
+  
+  var_mask <- 1+ (1/(tau**2))
+  BH.result_mask <- summary.BH(pvals_mask, H0,g_Y,mu,var_mask,alpha.list = alpha.list)
+  STAR.result_mask <- summary.STAR(STAR.obj2,H0,g_Y,mu,var_mask)
+  adapt.result_mask <- summary.AdaPT(AdaPT.obj2, H0, pvals,g_Y,mu,var_mask)
+  return(list(x=x,mu=mu,tau=tau,H0=H0,mu=mu,alt=alt,null=null,type=type,var=var,var_mask=var_mask,
+              Y=Y, f_Y=f_Y,g_Y=g_Y,pvals=pvals,pvals_mask=pvals_mask,
+              BH.result.mask=BH.result_mask, BH.result.full=BH.result_full,
+              adapt.result.mask=adapt.result_mask,adapt.result.full=adapt.result_full,
+              STAR.result.mask=STAR.result_mask, STAR.result.full = STAR.result_full,
+              STAR.full.object=STAR.obj1,AdaPT.full.object=AdaPT.obj1,
+              STAR.mask.object=STAR.obj2,AdaPT.mask.object=AdaPT.obj2))
+  if(filename == NULL){
+    save(file = paste(filename,tau,type,format(Sys.time(), "%Y-%m-%d_%H%M"),sep="_"), results)
+  }
+}
