@@ -50,7 +50,7 @@ wrapper_func <- function(x,mu,tau,alpha.list,num.steps.update.score,scope.params
 }
 
 results <- mclapply(1:repeat.times, function(r) {return(wrapper_func(x,mu,tau,alpha.list,num.steps.update.score,scope.params,alt,null,type=type,seed=r))}, mc.cores = detectCores())
-filename = paste(wd,paste("interactive",type,alt,null,grid_size,repeat.times,sep="_"),sep="")
+filename = paste(wd,paste("interactive",type,tau,alt,null,grid_size,repeat.times,sep="_"),sep="")
 save(file = filename, results)
 
 
