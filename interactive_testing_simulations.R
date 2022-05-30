@@ -21,6 +21,7 @@ null = as.numeric(args[4])
 grid_size = as.numeric(args[5])
 repeat.times = as.numeric(args[6])
 
+
 rho <- 0
 seed <- 1
 set.seed(seed)
