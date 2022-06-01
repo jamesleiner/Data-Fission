@@ -12,4 +12,4 @@ while read type tau alt null grid times; do
     echo "#SBATCH --mail-type=ALL" >> $filename
     echo "Rscript interactive_testing_simulations.R "$type $tau $alt $null $grid $times >> $filename
     sbatch $filename
-done < params.txt
+done < bash/params.txt
