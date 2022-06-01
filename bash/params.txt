@@ -1,3 +1,14 @@
+<<<<<<< HEAD
+poisson 0.9 100 50 50 500
+poisson 0.8 100 50 50 500
+poisson 0.7 100 50 50 500
+poisson 0.6 100 50 50 500
+poisson 0.5 100 50 50 500
+poisson 0.4 100 50 50 500
+poisson 0.3 100 50 50 500
+poisson 0.2 100 50 50 500
+poisson 0.1 100 50 50 500
+=======
 normal 0.1 2 0 25 500
 normal 0.2 2 0 25 500
 normal 0.3 2 0 25 500
@@ -16,3 +27,4 @@ poisson 0.4 10 5 25 500
 poisson 0.3 10 5 25 500
 poisson 0.2 10 5 25 500
 poisson 0.1 10 5 25 500
+>>>>>>> parent of 5a7c27f (update params)

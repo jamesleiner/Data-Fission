@@ -20,11 +20,9 @@ alt = as.numeric(args[3])
 null = as.numeric(args[4])
 grid_size = as.numeric(args[5])
 repeat.times = as.numeric(args[6])
-
+seed = as.numeric(args[7])*1000
 
 rho <- 0
-seed <- 1
-set.seed(seed)
 n <- grid_size*grid_size
 x1 <- seq(-100, 100, length.out =grid_size)
 x2 <- seq(-100, 100, length.out =grid_size)
@@ -49,7 +47,7 @@ wrapper_func <- function(x,mu,tau,alpha.list,num.steps.update.score,scope.params
              })
 }
 
-results <- mclapply(1:repeat.times, function(r) {return(wrapper_func(x,mu,tau,alpha.list,num.steps.update.score,scope.params,alt,null,type=type,seed=r))}, mc.cores = detectCores())
+results <- mclapply(1:repeat.times, function(r) {return(wrapper_func(x,mu,tau,alpha.list,num.steps.update.score,scope.params,alt,null,type=type,seed=(seed+r)))}, mc.cores = detectCores())
 filename = paste(wd,paste("interactive",type,tau,alt,null,grid_size,repeat.times,sep="_"),sep="")
 save(file = filename, results)
 
