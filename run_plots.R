@@ -338,10 +338,12 @@ t8 <- get_summary("results/interactive_poisson_0.2_10_5_25_100",alpha.list,10,0.
 t9 <- get_summary("results/interactive_poisson_0.1_10_5_25_100",alpha.list,10,0.1)
 
 alpha.list <- seq(0.01, 0.3, 0.01)
-t1 <- get_summary("results/interactive_normal_0.4_2_0_25_100",alpha.list,2,0.4)
-t2 <- get_summary("results/interactive_normal_0.3_2_0_25_100",alpha.list,2,0.3)
-t3 <- get_summary("results/interactive_normal_0.2_2_0_25_100",alpha.list,2,0.2)
-t4 <- get_summary("results/interactive_normal_0.1_2_0_25_100",alpha.list,2,0.1)
+t1 <- get_summary("results/interactive_normal_0.1_2_0_25_100",alpha.list,2,0.1)
+t2 <- get_summary("results/interactive_normal_0.2_2_0_25_100",alpha.list,2,0.2)
+t3 <- get_summary("results/interactive_normal_0.3_2_0_25_100",alpha.list,2,0.3)
+t4 <- get_summary("results/interactive_normal_0.4_2_0_25_100",alpha.list,2,0.4)
+t5 <- get_summary("results/interactive_normal_0.5_2_0_25_100",alpha.list,2,0.5)
+t6 <- get_summary("results/interactive_normal_0.6_2_0_25_100",alpha.list,2,0.6)
 
 
 agg <- rbind(t1,t2,t3,t4)
