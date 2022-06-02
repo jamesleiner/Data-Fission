@@ -123,8 +123,8 @@ experiment_masked <- function(x,mu,tau,alpha.list,num.steps.update.score,scope.p
     Z <- rbinom(n,Y,tau)
     g_Y = Y - Z
     f_Y = Z
-    Y_minus = sapply(Y,function(x) max(x-1,0))
-    f_Y_minus = sapply(f_Y,function(x) max(x-1,0))
+    Y_minus = Y- 0.1
+    f_Y_minus = f_Y - 0.1
     U1 <- runif(length(mu),0,1)
     U2 <- runif(length(mu),0,1)
     rand <- U1*ppois(Y, null) + (1-U1)* ppois(Y_minus, null)
