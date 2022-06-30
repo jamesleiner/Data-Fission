@@ -10,23 +10,16 @@ suppressPackageStartupMessages({
   library(quantreg)
   library(parallel)
   library(ggplot2)
-  library(glmgen)
-  library(trendfiltering)
   library(dplyr)
   library(magrittr)
   library(tidyr)
   library(rlang)
   library(purrr)
   library(parallel)
-  library(matrixStats)
   library(zoo)
 })
 source("regression.R")
 source("sim_dat_regression.R")
-
-source("trendfiltering-stats-scripts/trendfilter.R")
-source("trendfiltering-stats-scripts/utility-functions.R")
-source("trendfiltering-stats-scripts/hyperparameter-tuning.R")
 
 
 

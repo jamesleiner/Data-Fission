@@ -325,49 +325,41 @@ get_summary <-function(filename,alpha.list,mu,tau) {
   
 }
 
-load("results_PSC/interactive_poisson_0.1_10_5_50_250")
-AdaPT.mask.FDP <- do.call(rbind.data.frame, lapply(results,function(x) x$adapt.result.mask$FDP))
-        
+files <- list.files(path="results/results_interactive",  full.names=TRUE, recursive=FALSE)
 alpha.list <- seq(0.01, 0.3, 0.01)
-t1 <- get_summary("results_PSC/interactive_poisson_0.9_10_5_50_250",alpha.list,10,0.9)
-t2 <- get_summary("results_PSC/interactive_poisson_0.8_10_5_50_250",alpha.list,10,0.8)
-t3 <- get_summary("results_PSC/interactive_poisson_0.7_10_5_50_250",alpha.list,10,0.7)
-t4 <- get_summary("results_PSC/interactive_poisson_0.6_10_5_50_250",alpha.list,10,0.6)
-t5 <- get_summary("results_PSC/interactive_poisson_0.5_10_5_50_250",alpha.list,10,0.5)
-t6 <- get_summary("results_PSC/interactive_poisson_0.4_10_5_50_250",alpha.list,10,0.4)
-t7 <- get_summary("results_PSC/interactive_poisson_0.3_10_5_50_250",alpha.list,10,0.3)
-t8 <- get_summary("results_PSC/interactive_poisson_0.2_10_5_50_250",alpha.list,10,0.2)
-t9 <- get_summary("results_PSC/interactive_poisson_0.1_10_5_50_250",alpha.list,10,0.1)
-
-alpha.list <- seq(0.01, 0.3, 0.01)
-t1 <- get_summary("results_PSC/interactive_normal_0.9_2_0_25_100",alpha.list,2,0.9)
-t2 <- get_summary("results_PSC/interactive_normal_0.8_2_0_25_100",alpha.list,2,0.8)
-t3 <- get_summary("results_PSC/interactive_normal_0.7_2_0_25_100",alpha.list,2,0.7)
-t4 <- get_summary("results_PSC/interactive_normal_0.6_2_0_25_100",alpha.list,2,0.6)
-t5 <- get_summary("results_PSC/interactive_normal_0.5_2_0_25_100",alpha.list,2,0.5)
-t6 <- get_summary("results_PSC/interactive_normal_0.4_2_0_25_100",alpha.list,2,0.4)
-t7 <- get_summary("results_PSC/interactive_normal_0.3_2_0_25_100",alpha.list,2,0.3)
-t8 <- get_summary("results_PSC/interactive_normal_0.2_2_0_25_100",alpha.list,2,0.2)
-t9 <- get_summary("results_PSC/interactive_normal_0.1_2_0_25_100",alpha.list,2,0.1)
-agg <- rbind(t1,t2,t3,t4,t5,t6,t7,t8,t9)
+for(i in 1:length(files)){
+  print(i)
+  mu = strsplit(files[i],"_")[[1]][5]
+  tau = as.numeric(strsplit(files[i],"_")[[1]][4])
+  type = strsplit(files[i],"_")[[1]][3]
+  t1 <- get_summary(files[i],alpha.list,mu,tau)
+  if(i==1){
+    agg = cbind(type,t1)
+  }
+  else{
+    agg = rbind(agg, cbind(type,t1))
+  }
+}
 
 
+t1 <- agg[agg$Splitting=="Full" & agg$tau == 0.1,]
 ds <- agg[agg$Splitting=="Blurred",]
 for(i in 1:9/10) {
-  t_temp <- t1[t1$Splitting=="Full",]
+  t_temp <- t1
   t_temp$tau = i
   ds = rbind(ds,t_temp)
 }
 
-p1 <- ggplot(ds[ds$Metric == "FDP" & ds$TargetLevel==0.2,],
-             aes(x = tau, y = Value, fill = Procedure,linetype=Splitting)) +
+ds <- ds[ds$type == "poisson",]
+p1 <- ggplot(ds[ds$Metric == "FDP" & ds$TargetLevel==0.1,],
+             aes(x = tau, y = Value, color = Procedure,shape=Procedure,linetype=Splitting)) +
   geom_line(aes(color = Procedure,linetype=Splitting), size = 0.8) +
   geom_point(aes(shape = Procedure, color = Procedure), size = 1.5) +
   geom_hline(yintercept=0.2,linetype="dashed",size=1) +
   theme(legend.title = element_blank(),
         panel.background = element_rect(fill = "white", colour = "black"),
         panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
-        panel.grid.minor = element_line(colour = "grey"),
+        panel.grid.minor = element_line(colour = "grey"),legend.position="bottom",
         text = element_text(size = 15),legend.text = element_text(size = 15)) +
   scale_linetype_manual(NULL,values = c('dashed','solid')) + 
   xlab(TeX("$\\tau$"))+
@@ -412,44 +404,24 @@ p4 <- ggplot(ds[ds$Metric == "CI Length" & ds$TargetLevel==0.2,],
         panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
         panel.grid.minor = element_line(colour = "grey"),
         text = element_text(size = 15),
-        legend.position = "bottom", legend.text = element_text(size = 15)) +
+        legend.position = "none", legend.text = element_text(size = 15)) +
   xlab(TeX("$\\tau$")) +
   scale_linetype_manual(NULL,values = c('dashed','solid'))+
   ylab("CI Length")
 
 
-grid.arrange(p1,p2,p3,p4,nrow=2,ncol=2)
+grid.arrange(p1,p2,nrow=1,ncol=2)
+ggsave("figures/interactive_varytau_selection_poisson.pdf")
 
 
-alpha.list <- seq(0.01, 0.3, 0.01)
-t1 <- get_summary("results_PSC/interactive_normal_0.1_2_0_50_500",alpha.list,2,0.1)
-t2 <- get_summary("results_PSC/interactive_normal_0.2_2_0_50_500",alpha.list,2,0.2)
-t3 <- get_summary("results_PSC/interactive_normal_0.3_2_0_25_500",alpha.list,2,0.3)
-t4 <- get_summary("results_PSC/interactive_normal_0.4_2_0_50_500",alpha.list,2,0.4)
-t5 <- get_summary("results_PSC/interactive_normal_0.5_2_0_50_500",alpha.list,2,0.5)
-t6 <- get_summary("results_PSC/interactive_normal_0.6_2_0_50_500",alpha.list,2,0.6)
-t7 <- get_summary("results_PSC/interactive_normal_0.7_2_0_50_500",alpha.list,2,0.7)
-t8 <- get_summary("results_PSC/interactive_normal_0.8_2_0_50_500",alpha.list,2,0.8)
-t9 <- get_summary("results_PSC/interactive_normal_0.9_2_0_50_500",alpha.list,2,0.9)
+grid.arrange(p3,p4,nrow=1,ncol=2)
+ggsave("figures/interactive_varytau_inference_poisson.pdf")
 
 
 
-agg <- rbind(t1,t2,t3,t4,t5,t6,t7,t8,t9)
-
-
-ds <- agg[agg$Splitting=="Blurred",]
-for(i in 1:9/10) {
-  t_temp <- t1[t1$Splitting=="Full",]
-  t_temp$tau = i
-  ds = rbind(ds,t_temp)
-}
-
-
-
-
-filename = "results/interactive_normal_0.1_2_0_50_5"
+filename = "results/results_interactive/interactive_normal_0.1_2_0_50_250"
 load(filename)
-t <- results[[1]]
+t <- results[[2]]
 x <- t$x
 source('STAR_code/STAR_convex.R')
 
@@ -457,18 +429,19 @@ pdf(file="figures/convex_example_true.pdf")
 plot.rej.convex(x, ifelse(t$mu == 2,1,0), cex = 0.5,col.bg = "#A9A9A9", col.fg = "#000000",main = "", xaxt = "n", yaxt = "n")
 dev.off()
 
-pdf(file="figures/convex_example_run.pdf")
+pdf(file="figures/convex_example_run.pdf",width=7,height=5)
 par(mfrow=c(2,3))
-khat <- max(c(0,which(sort(t$pvals)<=0.2*(1:n)/n)))
+n <-length(t$pvals)
+khat <- max(c(0,which(sort(t$pvals)<=0.1*(1:n)/n)))
 alpha <- 0.1 * khat / n
 plot.rej.convex(x, ifelse(t$pvals < alpha,1,0), cex = 0.5,col.bg = "#A9A9A9", col.fg = "#000000",main = "BH (Full)", xaxt = "n", yaxt = "n")
-plot.rej.convex(x, ifelse(t$pvals < t$AdaPT.full.object$s[,20],2,0), cex = 0.5,col.bg = "#A9A9A9", col.fg = "#000000",main = "AdaPT (Full)", xaxt = "n", yaxt = "n")
-plot.rej.convex(x, ifelse(t$STAR.full.object$mask[,20],2,0), cex = 0.5,col.bg = "#A9A9A9", col.fg = "#000000",main = "STAR (Full)", xaxt = "n", yaxt = "n")
+plot.rej.convex(x, ifelse(t$pvals < t$AdaPT.full.object$s[,10],2,0), cex = 0.5,col.bg = "#A9A9A9", col.fg = "#000000",main = "AdaPT (Full)", xaxt = "n", yaxt = "n")
+plot.rej.convex(x, ifelse(t$STAR.full.object$mask[,10],2,0), cex = 0.5,col.bg = "#A9A9A9", col.fg = "#000000",main = "STAR (Full)", xaxt = "n", yaxt = "n")
 khat <- max(c(0,which(sort(t$pvals_mask)<=0.1*(1:n)/n)))
 alpha <- 0.1 * khat / n
-plot.rej.convex(x, ifelse(t$pvals_mask < alpha,2,0), cex = 0.5,col.bg = "#A9A9A9", col.fg = "#000000",main = "BH (Blurred)", xaxt = "n", yaxt = "n")
-plot.rej.convex(x, ifelse(t$pvals_mask < t$AdaPT.mask.object$s[,20],2,0), cex = 0.5,col.bg = "#A9A9A9", col.fg = "#000000",main = "AdaPT (Blurred)", xaxt = "n", yaxt = "n")
-plot.rej.convex(x, ifelse(t$STAR.mask.object$mask[,20],2,0), cex = 0.5,col.bg = "#A9A9A9", col.fg = "#000000",main = "STAR (Blurred)", xaxt = "n", yaxt = "n")
+plot.rej.convex(x, ifelse(t$pvals_mask < alpha,2,0), cex = 0.5,col.bg = "#A9A9A9", col.fg = "#000000",main = "BH (Fission)", xaxt = "n", yaxt = "n")
+plot.rej.convex(x, ifelse(t$pvals_mask < t$AdaPT.mask.object$s[,10],2,0), cex = 0.5,col.bg = "#A9A9A9", col.fg = "#000000",main = "AdaPT (Fission)", xaxt = "n", yaxt = "n")
+plot.rej.convex(x, ifelse(t$STAR.mask.object$mask[,10],2,0), cex = 0.5,col.bg = "#A9A9A9", col.fg = "#000000",main = "STAR (Fission)", xaxt = "n", yaxt = "n")
 dev.off()
 
 
