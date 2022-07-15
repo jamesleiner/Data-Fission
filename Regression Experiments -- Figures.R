@@ -1,24 +1,5 @@
 
-source("set_up_regression.R")
-source('input_regression.R')
-suppressPackageStartupMessages({
-  library(glmnet)
-  library(clubSandwich)
-  library(sandwich)
-  library(MASS)
-  library(rootSolve)
-  
-  library(genlasso)
-  library(splines)
-  library(cplm)
-  library(quantreg)
-  
-  library(parallel)
-  library(ggplot2)
-  library(reshape2)
-  library(ggforce)
-  
-})
+source("regression_code/set_up_regression.R")
 
 wd = paste(getwd(),"/results/",sep="")
 outdir = paste(getwd(),"/figures/",sep="")
@@ -230,16 +211,8 @@ get_metrics_poisson <- function(single_res,x,type="fahrmeir") {
   return(c(error_FCR,CI_length,FSR,power_sign,power_selected,precision_selected))
 }
 
-type="fahrmeir"
-model = "regression_poisson_varyRho"
-label="scale"
-vary_seq = c(10,100,1000)
-a= get_graphs(wd,"regression_poisson_varyRho","rho",seq(-0.5, 0.5, length.out = 5))
 
-
-
-
-get_graphs <- function(wd,model,label,vary_seq){
+get_graphs <- function(wd,model,label,vary_seq,type){
   load(file = paste(wd, model,".Rdata", sep = ""))
   
   for(par in vary_seq){
@@ -277,7 +250,7 @@ get_graphs <- function(wd,model,label,vary_seq){
     geom_hline(yintercept=0.2)+
     scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
   
-  
+  FCR_plot
   
   df = aggregate(res_agg$CI_length ~ res_agg[,2] + res_agg$type, FUN = median)
   colnames(df) <-c("signal","type","CI Length")
@@ -380,11 +353,71 @@ get_graphs <- function(wd,model,label,vary_seq){
 
 
 
+a= get_graphs(wd,"regression_poisson_varyscale","scale",vary_seq = seq(0, 0.5, length.out = 5),type='fahrmeir')
+
+wd
+model = "regression_poisson_varyscale"
+label = "scale"
+vary_seq = seq(0, 0.5, length.out = 5)
+type='fahrmeir'
+
+load(file = paste(wd, model,".Rdata", sep = ""))
+
+for(par in vary_seq){
+  agg_masking <- cbind("fission",par,data.frame(t(sapply(result[[as.character(par)]], function(x) get_metrics_poisson(x,"masking",type=type)))))
+  agg_split <- cbind("split",par,data.frame(t(sapply(result[[as.character(par)]], function(x) get_metrics_poisson(x,"split",type=type)))))
+  agg_full <- cbind("full",par,data.frame(t(sapply(result[[as.character(par)]], function(x) get_metrics_poisson(x,"full",type=type)))))
+  
+  
+  colnames(agg_masking) <- c("type",label,"error_FCR","CI_length","FSR","power_sign","power_selected","precision_selected")
+  colnames(agg_split) <- colnames(agg_masking) 
+  colnames(agg_full) <- colnames(agg_masking) 
+  agg <- rbind(agg_masking,agg_split,agg_full)
+  if(par ==vary_seq[1]){
+    res_agg = agg
+  }
+  else{
+    res_agg = rbind(res_agg,agg)
+  }
+}
+
+
+
+
+
+df = aggregate(res_agg$error_FCR ~ res_agg$scale + res_agg$type, FUN = mean)
+colnames(df) <-c("signal","type","FCR")
+FCR_plot <- df %>%
+  ggplot( aes(x=signal, y=FCR, group=type, color=type)) +
+  geom_line(aes(linetype = type, color = type), size = 1.5) +
+  geom_point(aes(shape = type, color = type), size = 3) +
+  theme(legend.title = element_blank(),
+        panel.background = element_rect(fill = "white", colour = "black"),
+        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
+        panel.grid.minor = element_line(colour = "grey"), legend.position= "none",
+        text = element_text(size = 15), legend.text = element_text(size = 15)) +
+  xlab("Scale") +
+  ylab("FCR") +
+  geom_hline(yintercept=0.2)+
+  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 model = "regression_poisson_varyscale"
 load(file = paste(wd, model,".Rdata", sep = ""))
-type = "fahrmeir"
+type = "sandwich"
 vary_seq = seq(0, 0.5, length.out = 5)
 for(par in vary_seq){
   agg_masking <- cbind("fission",par,data.frame(t(sapply(result[[as.character(par)]], function(x) get_metrics_poisson(x,"masking",type=type)))))

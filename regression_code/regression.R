@@ -340,8 +340,8 @@ experiment_logistic = function(para_vary){
     }
     return(list(CIs = CIs, projected = projected, selected = selected_list,beta = scale*beta))
   }
-  result_binomial = lapply(1:R, wrapper_func)
-  #result_binomial = mclapply(1:R, wrapper_func, mc.cores = detectCores())
+  #result_binomial = lapply(1:R, wrapper_func)
+  result_binomial = mclapply(1:R, wrapper_func, mc.cores = detectCores())
   return(result_binomial)
 }
 
