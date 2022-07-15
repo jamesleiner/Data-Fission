@@ -22,4 +22,4 @@ Prior to running the code, please install and download the [trendfiltering](http
 ## Acknolwedgements
 * The dataset for the spectroscopy example (section 6.3) was graciously provided to us by Collin Politsch, compiled from the Baryon Oscillation Spectro-
 scopic Surve. 
-* All of the base underlying functions used in the interactive testing experiments are taken from the [public repository](https://github.com/lihualei71/STAR) for the paper [STAR: A general interactive framework for FDR control under structural constraints](https://arxiv.org/pdf/1710.02776.pdf). Thank you toLihua Lei and coauthors.
+* All of the base underlying functions used in the interactive testing experiments are taken from the [public repository](https://github.com/lihualei71/STAR) for the paper [STAR: A general interactive framework for FDR control under structural constraints](https://arxiv.org/pdf/1710.02776.pdf). Thank you to Lihua Lei and coauthors.
