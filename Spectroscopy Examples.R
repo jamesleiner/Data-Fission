@@ -1,35 +1,15 @@
-suppressPackageStartupMessages({
-  library(glmnet)
-  library(clubSandwich)
-  library(sandwich)
-  library(MASS)
-  library(rootSolve)
-  library(genlasso)
-  library(splines)
-  library(cplm)
-  library(quantreg)
-  library(parallel)
-  library(ggplot2)
-  library(glmgen)
-  library(trendfiltering)
-  library(dplyr)
-  library(magrittr)
-  library(tidyr)
-  library(rlang)
-  library(purrr)
-  library(parallel)
-  library(matrixStats)
-  library(zoo)
-  library(latex2exp)
-  library(ggforce)
-})
-source("regression.R")
-source("trendfiltering-stats-scripts/trendfilter.R")
-source("trendfiltering-stats-scripts/utility-functions.R")
-source("trendfiltering-stats-scripts/hyperparameter-tuning.R")
+###################################################################################################
+# Reproduce spectroscopy example in section 6.3
+# Thank you to Collin Politsch for providing data and trendfiltering package
+#
+# Note that trend filtering package by Collin Politsch is a prerequisite to run these experiments. 
+# Please download at: https://capolitsch.github.io/trendfiltering/
+#
+# Author(s): James Leiner
+###################################################################################################
 
-
-
+# Load in required scripts and data
+source("regression_code/set_up_regression.R")
 quasar <- readRDS("trendfiltering-astro-data/fig3top_quasar_spectrum.rds")
 galaxy<- readRDS("trendfiltering-astro-data/fig3middle_galaxy_spectrum.rds")
 stellar <- readRDS("trendfiltering-astro-data/fig3bottom_stellar_spectrum.rds")
@@ -39,7 +19,6 @@ galaxy <- galaxy[galaxy$wavelength <= 5500 ,]
 galaxy <- galaxy[galaxy$wavelength >= 4000 ,]
 stellar <- stellar[stellar$wavelength <= 5500 ,]
 stellar <- stellar[stellar$wavelength >= 4000 ,]
-
 
 compute_tf <- function(X,Y,std,type="SURE",onesd_rule=1,deg=1,alpha=0.1){
   n=length(Y)
@@ -75,45 +54,6 @@ compute_tf <- function(X,Y,std,type="SURE",onesd_rule=1,deg=1,alpha=0.1){
   return(df)
 }
 
-
-X=stellar$wavelength
-Y= stellar$flux
-std = stellar$flux_std_err
-type="SURE"
-onesd_rule=1
-n=length(Y)
-deg=1
-alpha=0.1
-
-noise = rnorm(n, sd = std)
-g_Y = Y + noise
-h_Y = Y - noise
-
-if(type=="SURE"){
-  tf = sure_trendfilter(X,g_Y, weights =1/std,k=deg)
-  lambda_min = tf$lambda_min
-  lambda_1se= tf$lambda_1se
-} else{
-  tf = cv_trendfilter(X,g_Y, weights =1/std,k=deg)
-  lambda_min = tf$lambda_min[3]
-  lambda_1se= tf$lambda_1se[3]
-}
-if(onesd_rule) {
-  fit_y = tf$fitted_values[,50]
-}else{
-  fit_y = tf$fitted_values[,which(tf$lambda == lambda_min)]
-}
-knots = find_knots(fit_y,X,k=deg)
-
-k= length(knots)+deg
-basis = tp(1:n, knots = knots, degree=deg,k=k)
-bs_X = cbind(rep(1, n), basis$X, basis$Z)
-n_x = ncol(bs_X) 
-P_CI = predict(lm(h_Y ~ bs_X), interval="confidence", se.fit = TRUE, weights=1/std,level = 1 - alpha)
-U_CI = unif_CI(n = n, knots = knots, Y = h_Y, X = 1:n, alpha = alpha,degree=deg)$predicted[,2:3]
-
-df <- data.frame(cbind(X,Y,P_CI$fit,U_CI))
-colnames(df) <- c("Position","Actual","Predicted","CI_Low","CI_High","UCI_Low","UCI_High")
 
 
 quasar_fit = compute_tf(quasar$wavelength,quasar$flux,quasar$flux_std_err,deg=1)
@@ -166,7 +106,7 @@ galaxy_quadratic_detailed = ggplot(galaxy_fit,aes(Position,Actual,linetype="Actu
 
 
 
-stellar_quadratic_detailed = ggplot(df,aes(Position,Actual,linetype="Actual")) +geom_line() +
+stellar_quadratic_detailed = ggplot(stellar_fit,aes(Position,Actual,linetype="Actual")) +geom_line() +
   geom_line(aes(Position,Predicted,linetype="Fitted"),size=1.2)+
   geom_line(aes(Position,UCI_Low),color="orange",linetype="longdash",size=1.2) +
   geom_line(aes(Position,CI_Low),color="blue",linetype="twodash",size=1.2) + 

@@ -1,3 +1,8 @@
+###################################################################################################
+# Helper functions to execute experiments (Gaussian, Poisson, Logistic Regression and Trend Filtering)
+#
+# Author(s): Boyan Duan, James Leiner
+###################################################################################################
 
 fahrmeir_CIs <- function(infer_model,alpha){
   resid = infer_model$fitted.values - infer_model$y

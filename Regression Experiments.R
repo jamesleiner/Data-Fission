@@ -1,34 +1,9 @@
-suppressPackageStartupMessages({
-  library(glmnet)
-  library(clubSandwich)
-  library(sandwich)
-  library(MASS)
-  library(rootSolve)
-  library(genlasso)
-  library(splines)
-  library(cplm)
-  library(quantreg)
-  library(parallel)
-  library(ggplot2)
-  library(glmgen)
-  library(trendfiltering)
-  library(dplyr)
-  library(magrittr)
-  library(tidyr)
-  library(rlang)
-  library(purrr)
-  library(parallel)
-  library(matrixStats)
-  library(zoo)
-})
-source("regression.R")
-source("sim_dat_regression.R")
 
-source("trendfiltering-stats-scripts/trendfilter.R")
-source("trendfiltering-stats-scripts/utility-functions.R")
-source("trendfiltering-stats-scripts/hyperparameter-tuning.R")
+source("regression_code/set_up_regression.R")
 
-
+#######################################################################################################################
+# Linear Regression Experiments
+#######################################################################################################################
 
 
 scale_seq = seq(0, 0.2, length.out = 5)
@@ -70,47 +45,110 @@ for (rho in rho_seq) {
 save(result, file=paste("results/regression_linear_dependent.Rdata",sep = ""))
 
 
+
+influ_seq = seq(2, 6, length.out = 5)
+result=list()
+for (influ in influ_seq) { 
+  para_vary = list(list(name = "rho", value = 0),
+                   list(name = "scale", value = 1),
+                   list(name = "R", value = 500),
+                   list(name = "n", value = 15),
+                   list(name = "p", value = 20),
+                   list(name = "type", value = "independent"),
+                   list(name = "beta", 
+                        value = c(1, rep(0,15),1,-1,1,0)),
+                   list(name="add_influential",value=c(influ))
+  )
+  experiment_linear(para_vary)
+  
+  result[[as.character(influ)]] = experiment_linear(para_vary)
+}
+save(result, file=paste("results/regression_linear_influential6.Rdata",sep = ""))
+
+
+
+#######################################################################################################################
+# Poisson Regression Experiments
+#######################################################################################################################
+
+influ_seq = seq(1, 6, length.out = 6)
+result=list()
+for (influ in influ_seq) { 
+  para_vary = list(list(name = "scale", value = 1),
+                   list(name = "R", value = 500),
+                   list(name = "n", value = 15),
+                   list(name = "p", value = 20),
+                   list(name = "prob",value = 0.2),
+                   list(name = "beta", 
+                        value = c(1, rep(0,15),1,-1,1,0)),
+                   list(name="add_influential",value=c(influ)))
+  
+  result[[as.character(influ)]] = experiment_poisson(para_vary)
+}
+
+save(result, file=paste("results/regression_poisson_influential.Rdata",sep = ""))
+
+
+n_seq = c(10,100,1000,10000,100000)
+p = 100
+result = list()
+for (n in n_seq) { 
+  print(n)
+  para_vary = list(list(name = "scale", value = 0.5),
+                   list(name = "n", value = n),
+                   list(name = "R", value = 500),
+                   list(name = 'prob',value=0.5),
+                   list(name = "p", value = p),
+                   list(name = "beta", 
+                        value = c(1, 0, rep(1,20), rep(0, p - 30), rep(2,8))
+                   )) 
+  result[[as.character(log(n,base=10))]] = experiment_poisson(para_vary)
+}
+save(result, file=paste("results/regression_poisson_varynum.Rdata",sep = ""))
+
+
 scale_seq = seq(0, 0.5, length.out = 5)
 p = 100
 result = list()
 for (scale in scale_seq) { 
   print(scale)
   para_vary = list(list(name = "scale", value = scale),
+                   list(name = "n", value = 10000),
                    list(name = "R", value = 500),
+                   list(name = 'prob',value=0.5),
                    list(name = "p", value = p),
                    list(name = "beta", 
-                        value = c(1, 0, rep(1,20), rep(0, p - 30), rep(-1,8))
-                        # value = c(1, 0, rep(1,5), rep(0, p - 10), rep(2,3))
-                        # value = rep(c(1, 0, 0, 0, 0, 1, 0, 0, 0, 0), 10))
+                        value = c(1, 0, rep(1,20), rep(0, p - 30), rep(2,8))
                    )) 
   result[[as.character(scale)]] = experiment_poisson(para_vary)
 }
-save(result, file=paste("results/regression_poisson_neg.Rdata",sep = ""))
-
+save(result, file=paste("results/regression_poisson_varyscale.Rdata",sep = ""))
 
 
 
 rho_seq = seq(-0.5, 0.5, length.out = 5)
 result = list()
 for (rho in rho_seq) { 
-  print(rho)
+  p=100
   para_vary = list(list(name = "rho", value = rho),
-                   list(name = "scale", value = 0.3),
-                   list(name = "R", value = 100),
-                   list(name = "p", value = 100),
+                   list(name = "scale", value = 0.25),
+                   list(name = "n", value = 10000),
+                   list(name = "R", value = 500),
+                   list(name = "p", value = p),
+                   list(name = 'prob',value=0.2),
                    list(name = "type", value = "dependent"),
                    list(name = "beta", 
-                        # value = c(1, 0, rep(1,20), rep(0, p - 30), rep(2,8))
-                        value = rep(c(1, 0, 0, 0, 0, 1, 0, 0, 0, 0), 10)
-                        # value = rep(c(1, 0, 0, 1, 0, 0, 1, 0, 0, 0), 10)
-                        ))
+                        value = c(1, 0, rep(1,20), rep(0, p - 30), rep(2,8))
+                   ))
   result[[as.character(rho)]] = experiment_poisson(para_vary)
 }
-save(result, file=paste("results/regression_poisson_dependent_varyRho.Rdata",sep = ""))
+save(result, file=paste("results/regression_poisson_varyRho.Rdata",sep = ""))
 
-# result = experiment_trendfilter(list())
-# save(result, file=paste("results/trendfilter.Rdata",sep = ""))
 
+
+#######################################################################################################################
+# Logistic Regression Experiments
+#######################################################################################################################
 
 
 scale_seq = seq(0, 0.5, length.out = 6)
@@ -177,24 +215,24 @@ save(result, file=paste("results/regression_logistic_varyscale_simCI_rep.Rdata",
 
 
 
-  scale_seq = (0:5)/2.5
-  p = 100
-  result = list()
-  for (scale in scale_seq) { 
-    print(scale)
-    para_vary = list(list(name = "scale", value = scale),
-                     list(name = "n", value = 1000),
-                     list(name = "prob", value = 0.2),
-                     list(name = "R", value = 500),
-                     list(name = "p", value = p),
-                     list(name = "beta", 
-                          value = c(rep(0, p - 5), rep(1,5))
-                          # value = c(1, 0, rep(1,5), rep(0, p - 10), rep(2,3))
-                          # value = rep(c(1, 0, 0, 0, 0, 1, 0, 0, 0, 0), 10))
-                     )) 
-    result[[as.character(scale)]] = experiment_logistic(para_vary)
-  }
-  save(result, file=paste("results/regression_logistic_varyscale_simCI_sparse_rep.Rdata",sep = ""))
+scale_seq = (0:5)/2.5
+p = 100
+result = list()
+for (scale in scale_seq) { 
+  print(scale)
+  para_vary = list(list(name = "scale", value = scale),
+                   list(name = "n", value = 1000),
+                   list(name = "prob", value = 0.2),
+                   list(name = "R", value = 500),
+                   list(name = "p", value = p),
+                   list(name = "beta", 
+                        value = c(rep(0, p - 5), rep(1,5))
+                        # value = c(1, 0, rep(1,5), rep(0, p - 10), rep(2,3))
+                        # value = rep(c(1, 0, 0, 0, 0, 1, 0, 0, 0, 0), 10))
+                   )) 
+  result[[as.character(scale)]] = experiment_logistic(para_vary)
+}
+save(result, file=paste("results/regression_logistic_varyscale_simCI_sparse_rep.Rdata",sep = ""))
   
   
 
@@ -217,23 +255,6 @@ for (scale in scale_seq) {
 save(result, file=paste("results/regression_logistic_unidim.Rdata",sep = ""))
 
 
-scale_seq = seq(0.5, 3, length.out = 6)
-result = list()
-for (scale in scale_seq) { 
-  print(scale)
-  para_vary = list(list(name = "scale", value = scale),
-                   list(name = "R", value = 100),
-                   list(name = "methods", value = "test"),
-                   list(name = "p", value = 1),
-                   list(name = "beta", 
-                        value = 1)) 
-  result[[as.character(scale)]] = experiment_linear(para_vary)
-}
-save(result, file=paste("results/regression_linear_unidim.Rdata",sep = ""))
-
-
-
-
 
 
 scale_seq = seq(0.5, 3, length.out = 6)
@@ -253,7 +274,9 @@ for (scale in scale_seq) {
 }
 save(result, file=paste("results/regression_logistic_singlesignal.Rdata",sep = ""))
 
-
+#######################################################################################################################
+# Trend Filter Experiments
+#######################################################################################################################
 
 
 sigma_seq = seq(0.05, 0.2, length.out = 4)

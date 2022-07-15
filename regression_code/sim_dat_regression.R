@@ -1,3 +1,10 @@
+###################################################################################################
+# Code for generating synthetic datasets to be used in large-scale testing of experiments 
+# Includes code for Gaussian, Poisson, Trend Filtering, and and Binomial Regression synthetic datasets. 
+#
+# Author(s): Boyan Duan, James Leiner
+###################################################################################################
+
 generate_poisson = function(n, p, beta, type, rho, add_influential = c()){
   if (type == "independent") {
     X = cbind(
