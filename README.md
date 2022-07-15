@@ -6,10 +6,10 @@ This repository contains code to replicate all figures and experiments found in 
 Prior to running the code, please install and download the [trendfiltering](https://capolitsch.github.io/trendfiltering/) package by  [Collin Politsch](https://collinpolitsch.com/). The remainder of the pre-requistie packages can be download through the CRAN repository. 
 
 ## Instructions
-* The experiments for the interactive multiple testing application (section 3) need to be run on a cluster. To do this, please:
- * Create a results folder in your working directory to store output
- * Run the script `interactive_experiments_batch.sh` on a cluster (currently written assuming a slurm scheduler)
- * Run the script `Interactive Testing -- Figures.R` to reproduce the plots in the document. 
+* The experiments for the interactive multiple testing application (section 3) need to be run on a cluster. To do this, please
+  * Create a results folder in your working directory to store output
+  * Run the script `interactive_experiments_batch.sh` on a cluster (currently written assuming a slurm scheduler)
+  * Run the script `Interactive Testing -- Figures.R` to reproduce the plots in the document. 
 * The experiments for sections 4,5, and 6 may be run on a personal computer but can be sped up considerably if using a a machine with multiple cores. To reproduce the results, please:
   * Create a results folder in your working directory to store output
   * Run the script `Regression Experiments.R`
