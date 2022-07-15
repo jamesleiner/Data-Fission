@@ -75,7 +75,7 @@ influ_seq = seq(1, 6, length.out = 6)
 result=list()
 for (influ in influ_seq) { 
   para_vary = list(list(name = "scale", value = 1),
-                   list(name = "R", value = 500),
+                   list(name = "R", value = 5),
                    list(name = "n", value = 15),
                    list(name = "p", value = 20),
                    list(name = "prob",value = 0.2),
@@ -89,32 +89,14 @@ for (influ in influ_seq) {
 save(result, file=paste("results/regression_poisson_influential.Rdata",sep = ""))
 
 
-n_seq = c(10,100,1000,10000,100000)
-p = 100
-result = list()
-for (n in n_seq) { 
-  print(n)
-  para_vary = list(list(name = "scale", value = 0.5),
-                   list(name = "n", value = n),
-                   list(name = "R", value = 500),
-                   list(name = 'prob',value=0.5),
-                   list(name = "p", value = p),
-                   list(name = "beta", 
-                        value = c(1, 0, rep(1,20), rep(0, p - 30), rep(2,8))
-                   )) 
-  result[[as.character(log(n,base=10))]] = experiment_poisson(para_vary)
-}
-save(result, file=paste("results/regression_poisson_varynum.Rdata",sep = ""))
-
-
 scale_seq = seq(0, 0.5, length.out = 5)
 p = 100
 result = list()
 for (scale in scale_seq) { 
   print(scale)
   para_vary = list(list(name = "scale", value = scale),
-                   list(name = "n", value = 10000),
-                   list(name = "R", value = 500),
+                   list(name = "n", value = 1000),
+                   list(name = "R", value = 5),
                    list(name = 'prob',value=0.5),
                    list(name = "p", value = p),
                    list(name = "beta", 
@@ -132,7 +114,7 @@ for (rho in rho_seq) {
   p=100
   para_vary = list(list(name = "rho", value = rho),
                    list(name = "scale", value = 0.25),
-                   list(name = "n", value = 10000),
+                   list(name = "n", value = 1000),
                    list(name = "R", value = 500),
                    list(name = "p", value = p),
                    list(name = 'prob',value=0.2),
@@ -145,6 +127,24 @@ for (rho in rho_seq) {
 save(result, file=paste("results/regression_poisson_varyRho.Rdata",sep = ""))
 
 
+if(0){
+  n_seq = c(10,100,1000,10000,100000)
+  p = 100
+  result = list()
+  for (n in n_seq) { 
+    print(n)
+    para_vary = list(list(name = "scale", value = 0.5),
+                     list(name = "n", value = n),
+                     list(name = "R", value = 500),
+                     list(name = 'prob',value=0.5),
+                     list(name = "p", value = p),
+                     list(name = "beta", 
+                          value = c(1, 0, rep(1,20), rep(0, p - 30), rep(2,8))
+                     )) 
+    result[[as.character(log(n,base=10))]] = experiment_poisson(para_vary)
+  }
+  save(result, file=paste("results/regression_poisson_varynum.Rdata",sep = ""))
+}
 
 #######################################################################################################################
 # Logistic Regression Experiments
@@ -158,7 +158,7 @@ for (scale in scale_seq) {
   print(scale)
   para_vary = list(list(name = "scale", value = scale),
                    list(name = "prob", value = 0.2),
-                   list(name = "R", value = 100),
+                   list(name = "R", value = 5),
                    list(name = "p", value = p),
                    list(name = "beta", 
                         value = c(1, 0, rep(1,20), rep(0, p - 31), rep(2,9))

@@ -25,7 +25,7 @@ fahrmeir_CIs <- function(infer_model,alpha){
 
 
 experiment_poisson = function(para_vary){
-  source("input_regression.R", local = TRUE)
+  source("regression_code/input_regression.R", local = TRUE)
   for (single_para_vary in para_vary) {
     assign(single_para_vary$name, single_para_vary$value)
   }
@@ -137,7 +137,7 @@ experiment_poisson = function(para_vary){
 
 
 experiment_linear = function(para_vary){
-  source("input_regression.R", local = TRUE)
+  source("regression_code/input_regression.R", local = TRUE)
   for (single_para_vary in para_vary) {
     assign(single_para_vary$name, single_para_vary$value)
   }
@@ -254,132 +254,94 @@ projected_beta = function(exp_y, X, beta) {
 }
 
 experiment_logistic = function(para_vary){
-  source("input_regression.R", local = TRUE)
+  source("regression_code/input_regression.R", local = TRUE)
   for (single_para_vary in para_vary) {
     assign(single_para_vary$name, single_para_vary$value)
   }
   
   wrapper_func = function(i){
     print(i)
-    CIs = list(); selected = list(); nCIs = list(); projected = list(); ll_ratio = list()
+    CIs = list(); selected_list = list(); projected = list();
     
     dat = generate_logistic(n = n, p = p, beta = beta*scale)
-    sim_dat = generate_logistic(n = n, p = p, beta = beta*scale)
-    X = cbind(rep(1, n), dat$X); sim_X = cbind(rep(1,n), sim_dat$X); beta = c(0, beta)
+    X = cbind(rep(1, n), dat$X)
+    beta = c(0, beta)
     if ("masking" %in% methods) {
+      CIs[["masking"]]$standard = matrix(NA, nrow = ncol(X), ncol = 2)
+      CIs[["masking"]]$sandwich = matrix(NA, nrow = ncol(X), ncol = 2)
+      CIs[["masking"]]$fahrmeir = matrix(NA, nrow = ncol(X), ncol = 2)
+      
       Z = sapply(dat$Y, function(x){rbinom(1, size = 1, prob = prob)})
       g_Y = (1 - dat$Y)*Z + dat$Y*(1 - Z)
       
       select_model = cv.glmnet(dat$X, g_Y, family = "binomial")
-      selected[["masking"]] = which(coef(select_model, s = 'lambda.1se') != 0)
-      if (length(selected[["masking"]]) > 0) {
-        infer_model = glm(dat$Y ~ X[,selected[["masking"]]] -1, family = "binomial")
+      selected = which(coef(select_model, s = 'lambda.1se') != 0)
+      selected_list[["masking"]] = selected
+      if (length(selected) > 0) {
+        infer_model = glm(dat$Y ~ X[,selected_list[["masking"]]] -1, family = "binomial")
+        CIs[["masking"]]$standard[selected,] = confint(infer_model, level = 1 - alpha)
         temp = conf_int(infer_model, vcov = "CR2", cluster = dat$cluster, level = 1 - alpha)
-        CIs[["masking"]] = cbind(temp[,5],temp[,6])
-        # cov_vec[["masking"]] = temp[,2]
+        CIs[["masking"]]$sandwich[selected,] = cbind(temp[,5],temp[,6])
+        temp = conf_int(infer_model, vcov = "CR0", cluster = dat$cluster, level = 1 - alpha)
+        CIs[["masking"]]$fahrmeir[selected,] = cbind(temp[,5],temp[,6])
         
-        sim_infer_model = glm(sim_dat$Y~ sim_X[,selected[["masking"]]] -1, family = "binomial")
-        temp = conf_int(sim_infer_model, vcov = "CR2", cluster = dat$cluster, level = 1 - alpha)
-        nCIs[["masking"]] = cbind(temp[,5],temp[,6])
-        
-        # B = diag(bread(infer_model)); M = diag(meatHC(infer_model))
-        # sim_B = diag(bread(sim_infer_model)); sim_M = diag(meatHC(sim_infer_model))
-        ratio_B = diag(bread(infer_model))/diag(bread(sim_infer_model))
-        ratio_M = diag(meatHC(infer_model))/diag(meatHC(sim_infer_model))
         
         cond_exp_y = dat$exp_y/(dat$exp_y + (1 - dat$exp_y)*(prob/(1 - prob))^(2*g_Y - 1))
-        projected[["masking"]] = projected_beta(
-          exp_y = cond_exp_y, X = X[,selected[["masking"]]], beta = scale*beta[selected[["masking"]]])
-        if (length(selected[["masking"]]) == 1) {
-          projected_exp = 1/(1 + exp(-X[,selected[["masking"]]]*projected[["masking"]]))
-          fi_selected = X[,selected[["masking"]]] *
-            as.vector(projected_exp/(1 + projected_exp)^2) * X[,selected[["masking"]]]
-          fi_sim = sim_X[,selected[["masking"]]] * 
-            as.vector(sim_dat$exp_y/(1 + sim_dat$exp_y)^2) * sim_X[,selected[["masking"]]]
-        } else {
-          projected_exp = 1/(1 + exp(-X[,selected[["masking"]]]%*%projected[["masking"]]))
-          fi_selected = diag(t(X[,selected[["masking"]]]) %*%
-                               diag(as.vector(projected_exp/(1 + projected_exp)^2)) %*% X[,selected[["masking"]]])
-          fi_sim = diag(t(sim_X[,selected[["masking"]]]) %*%
-                          diag(as.vector(sim_dat$exp_y/(1 + sim_dat$exp_y)^2)) %*% sim_X[,selected[["masking"]]])
-        }
-        ratio_fi = fi_selected/fi_sim
-        ll_ratio[["masking"]] = sum(dat$Y*projected_exp/dat$exp_y +
-                                      (1 - dat$Y)*(1 - projected_exp)/(1 - dat$exp_y))
-      } else {CIs[["masking"]] = NA; nCIs[["masking"]] = NA; projected[["masking"]] = NA;
-              ratio_B = NA; ratio_M = NA; projected[["masking"]] = NA; ratio_fi = NA}
+        projected[["masking"]] = projected_beta(exp_y = cond_exp_y, X = X[,selected_list[["masking"]]], beta = scale*beta[selected_list[["masking"]]])
+      } else {projected[["masking"]] = NA}
     }
     if ("full" %in% methods) {
+      CIs[["full"]]$standard = matrix(NA, nrow = ncol(X), ncol = 2)
+      CIs[["full"]]$sandwich = matrix(NA, nrow = ncol(X), ncol = 2)
+      CIs[["full"]]$fahrmeir = matrix(NA, nrow = ncol(X), ncol = 2)
+      
       select_model = cv.glmnet(dat$X, dat$Y, family = "binomial")
-      selected[["full"]] = which(coef(select_model, s = 'lambda.1se') != 0)
-      if (length(selected[["full"]]) > 0) {
-        infer_model = glm(dat$Y ~ X[,selected[["full"]]] -1, family = "binomial")
+      selected = which(coef(select_model, s = 'lambda.1se') != 0)
+      selected_list[["full"]] = selected
+      if (length(selected) > 0) {
+        infer_model = glm(dat$Y ~ X[,selected_list[["full"]]] -1, family = "binomial")
+        CIs[["full"]]$standard[selected,] = confint(infer_model, level = 1 - alpha)
         temp = conf_int(infer_model, vcov = "CR2", cluster = dat$cluster, level = 1 - alpha)
-        CIs[["full"]] = cbind(temp[,5],temp[,6])
-        # cov_vec[["full"]] = temp[,2]
-        
-        sim_infer_model = glm(sim_dat$Y~ sim_X[,selected[["full"]]] -1, family = "binomial")
-        temp = conf_int(sim_infer_model, vcov = "CR2", cluster = dat$cluster, level = 1 - alpha)
-        nCIs[["full"]] = cbind(temp[,5],temp[,6])
+        CIs[["full"]]$sandwich[selected,] = cbind(temp[,5],temp[,6])
+        temp = conf_int(infer_model, vcov = "CR0", cluster = dat$cluster, level = 1 - alpha)
+        CIs[["full"]]$fahrmeir[selected,] = cbind(temp[,5],temp[,6])
         
         projected[["full"]] = projected_beta(
-          exp_y = dat$exp_y, X = X[,selected[["full"]]], beta = scale*beta[selected[["full"]]])
-        projected[["sim"]] = projected_beta(
-          exp_y = sim_dat$exp_y, X = sim_X[,selected[["full"]]], beta = scale*beta[selected[["full"]]])
-        if (length(selected[["full"]]) == 1) {
-          projected_exp = 1/(1 + exp(-X[,selected[["full"]]]*projected[["full"]]))
-        } else {
-          projected_exp = 1/(1 + exp(-X[,selected[["full"]]]%*%projected[["full"]]))
-        }
-        ll_ratio[["full"]] = sum(dat$Y*projected_exp/dat$exp_y +
-                                      (1 - dat$Y)*(1 - projected_exp)/(1 - dat$exp_y))
-      } else {CIs[["full"]] = NA; nCIs[["full"]] = NA; projected[["full"]] = NA; projected[["sim"]] = NA}
+          exp_y = dat$exp_y, X = X[,selected_list[["full"]]], beta = scale*beta[selected_list[["full"]]])
+      } else {projected[["full"]] = NA}
     }
     if ('split' %in% methods) {
+      CIs[["split"]]$standard = matrix(NA, nrow = ncol(X), ncol = 2)
+      CIs[["split"]]$sandwich = matrix(NA, nrow = ncol(X), ncol = 2)
+      CIs[["split"]]$fahrmeir = matrix(NA, nrow = ncol(X), ncol = 2)
       # split_ind = sample(1:n, size = n/2)
       split_ind = rbinom(n, 1, 1/2)
       select_model = cv.glmnet(dat$X[split_ind == 1,], dat$Y[split_ind == 1], family = "binomial")
-      selected[["split"]] = which(coef(select_model, s = 'lambda.1se') != 0)
-      if (length(selected[["split"]]) > 0) {
-        infer_model = glm(dat$Y[split_ind == 0] ~ X[split_ind == 0,selected[["split"]]] -1,
+      selected = which(coef(select_model, s = 'lambda.1se') != 0)
+      selected_list[["split"]] = selected
+      if (length(selected) > 0) {
+        infer_model = glm(dat$Y[split_ind == 0] ~ X[split_ind == 0,selected_list[["split"]]] -1,
                           family = "binomial")
+        CIs[["split"]]$standard[selected,] = confint(infer_model, level = 1 - alpha)
         temp = conf_int(infer_model, vcov = "CR2", cluster = factor(1:(n - sum(split_ind))),
                         level = 1 - alpha)
-        CIs[["split"]] = cbind(temp[,5],temp[,6])
-        # cov_vec[["split"]] = temp[,2]
-        
-        sim_infer_model = glm(sim_dat$Y~ sim_X[,selected[["split"]]] -1, family = "binomial")
-        temp = conf_int(sim_infer_model, vcov = "CR2", cluster = dat$cluster, level = 1 - alpha)
-        nCIs[["split"]] = cbind(temp[,5],temp[,6])
+  
+        CIs[["split"]]$sandwich[selected,] = cbind(temp[,5],temp[,6])
+        temp = conf_int(infer_model, vcov = "CR0", cluster = factor(1:(n - sum(split_ind))),
+                        level = 1 - alpha)
+        CIs[["split"]]$fahrmeir[selected,] = cbind(temp[,5],temp[,6])
+  
         
         projected[["split"]] = projected_beta( 
-          exp_y = dat$exp_y[split_ind == 0], X = X[split_ind == 0,selected[["split"]]],
-          beta = scale*beta[selected[["split"]]])
-        if (length(selected[["split"]]) == 1) {
-          projected_exp = 1/(1 + exp(-X[,selected[["split"]]]*projected[["split"]]))
-        } else {
-          projected_exp = 1/(1 + exp(-X[,selected[["split"]]]%*%projected[["split"]]))
-        }
-        ll_ratio[["split"]] = sum(dat$Y*projected_exp/dat$exp_y +
-                                   (1 - dat$Y)*(1 - projected_exp)/(1 - dat$exp_y))
-      } else {CIs[["split"]] = NA; nCIs[["split"]] = NA; projected[["split"]] = NA}
+          exp_y = dat$exp_y[split_ind == 0], X = X[split_ind == 0,selected_list[["split"]]],
+          beta = scale*beta[selected_list[["split"]]])
+       
+      } else {projected[["split"]] = NA}
     }
-    if ('test' %in% methods) {
-      infer_model = glm(dat$Y~ dat$X, family = "binomial")
-      # temp = conf_int(infer_model, vcov = "CR2", cluster = factor(1:n), level = 1 - alpha)[-1,]
-      # CIs[["test"]] = cbind(temp[,5],temp[,6])
-      CIs[["test"]] = confint(infer_model, level = 1 - alpha)[-1,]
-      sd = summary(infer_model)$coefficients[2,2]
-      est = summary(infer_model)$coefficients[2,1]
-      g_Y = NA
-    }
-    return(list(CIs = CIs, nCIs = nCIs, projected = projected, ll_ratio = ll_ratio,
-                ratio_B = ratio_B, ratio_M = ratio_M, ratio_fi = ratio_fi, selected = selected
-                #sd = sd, est = est, X = cbind(rep(1, n), dat$X), split_ind = split_ind, g_Y = g_Y, Y = dat$Y
-                ))
+    return(list(CIs = CIs, projected = projected, selected = selected_list,beta = scale*beta))
   }
-  # result_binomial = lapply(1:R, wrapper_func)
-  result_binomial = mclapply(1:R, wrapper_func, mc.cores = detectCores())
+  result_binomial = lapply(1:R, wrapper_func)
+  #result_binomial = mclapply(1:R, wrapper_func, mc.cores = detectCores())
   return(result_binomial)
 }
 
@@ -431,7 +393,7 @@ find_knots <- function(fit_y,x,k=1,tol=0.01){
 
 
 experiment_trendfilter = function(para_vary){
-  source("input_regression.R", local = TRUE)
+  source("regression_code/input_regression.R", local = TRUE)
   for (single_para_vary in para_vary) {
     assign(single_para_vary$name, single_para_vary$value)
   }
