@@ -7,9 +7,15 @@ Prior to running the code, please install and download the [trendfiltering](http
 
 ## Instructions
 * The experiments for the interactive multiple testing application (section 3) need to be run on a cluster. To do this, please:
-** Create a results folder in your working directory to store output
-** Run the script 'interactive_experiments_batch.sh' on a cluster (currently written assuming a slurm scheduler)
-** Run the script 'Interactive Testing -- Figures.R' to reproduce the plots in the document. 
+ * Create a results folder in your working directory to store output
+ * Run the script `interactive_experiments_batch.sh` on a cluster (currently written assuming a slurm scheduler)
+ * Run the script `Interactive Testing -- Figures.R` to reproduce the plots in the document. 
+* The experiments for sections 4,5, and 6 may be run on a personal computer but can be sped up considerably if using a a machine with multiple cores. To reproduce the results, please:
+  * Create a results folder in your working directory to store output
+  * Run the script `Regression Experiments.R`
+  * Run the script `Regression Experiments -- Figures.R` to reproduce the plots in the document (excluding section 6.3). 
+  * Run the script `Spectroscopy Examples.R` to reproduce the plots for section 6.3 in the document (the spectroscopy live data example). 
+* An additional file, `Reproduce Miscellaneous Figures.R` includes additional figures that are not core results but are used for illustrative purposes in the paper. 
 
 
 
