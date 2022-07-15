@@ -17,7 +17,7 @@ suppressPackageStartupMessages({
   library(ggplot2)
   library(reshape2)
   library(ggforce)
-  library(matrixStats)
+  library(ggpubr)
   
 })
 
@@ -39,7 +39,7 @@ get_metrics_linear <- function(single_res,x,beta) {
     precision_selected = NA
     return(c(error_FCR,CI_length,FSR,power_sign,power_selected,precision_selected))
   }
-  if (!is.na(single_res$projected[[x]])) {
+  if (!is.na(single_res$selected[[x]][1])) {
     error_FCR = mean((single_res$CIs[[x]][,1] > single_res$projected[[x]]) |  (single_res$CIs[[x]][,2] < single_res$projected[[x]]))
     CI_length = mean(single_res$CIs[[x]][,2] - single_res$CIs[[x]][,1])         
     FSR <- mean((single_res$projected[[x]] > 0 & single_res$CIs[[x]][,2] < 0) | (single_res$projected[[x]] <0 & single_res$CIs[[x]][,1] > 0)) 
@@ -61,62 +61,339 @@ get_metrics_linear <- function(single_res,x,beta) {
 
 
 # Figure 9 
-model = "regression_linear_independent"
-p=100
+model = "regression_linear_influential6"
+p=20
 load(file = paste(wd, model,".Rdata", sep = ""))
-beta= c(1, 0, rep(1,20), rep(0, p - 31), rep(-1,9))
-scale_seq = seq(0, 0.2, length.out = 5)
-for(scale in scale_seq){
-  agg_masking <- cbind("masking",scale,data.frame(t(sapply(result[[as.character(scale)]], function(x) get_metrics_linear(x,"masking",beta)))))
-  agg_split <- cbind("split",scale,data.frame(t(sapply(result[[as.character(scale)]], function(x) get_metrics_linear(x,"split",beta)))))
-  agg_full <- cbind("full",scale,data.frame(t(sapply(result[[as.character(scale)]], function(x) get_metrics_linear(x,"full",beta)))))
+beta= c(1, rep(0,15),1,-1,1,0)
+influ_seq = seq(2, 6, length.out = 5)
+for(influ in influ_seq){
+  agg_masking <- cbind("masking",influ,data.frame(t(sapply(result[[as.character(influ)]], function(x) get_metrics_linear(x,"masking",beta)))))
+  agg_split <- cbind("split",influ,data.frame(t(sapply(result[[as.character(influ)]], function(x) get_metrics_linear(x,"split",beta)))))
+  agg_full <- cbind("full",influ,data.frame(t(sapply(result[[as.character(influ)]], function(x) get_metrics_linear(x,"full",beta)))))
   
   colnames(agg_masking) <- c("type","scale","error_FCR","CI_length","FSR","power_sign","power_selected","precision_selected")
   colnames(agg_split) <- colnames(agg_masking) 
   colnames(agg_full) <- colnames(agg_masking) 
   agg <- rbind(agg_masking,agg_split,agg_full)
-  if(scale == scale_seq[1]){
+  if(influ ==influ_seq[1]){
     res_agg = agg
   }
   else{
     res_agg = rbind(res_agg,agg)
   }
 }
+res_agg$type = as.character(res_agg$type)
+res_agg[res_agg$type == "masking",'type'] = "blur"
+
+
+
 
 df = aggregate(res_agg$error_FCR ~ res_agg$scale + res_agg$type, FUN = mean)
 colnames(df) <-c("signal","type","FCR")
 FCR_plot <- df %>%
   ggplot( aes(x=signal, y=FCR, group=type, color=type)) +
-  geom_line(aes(linetype = type, color = type), size = 0.8) +
-  geom_point(aes(shape = type, color = type), size = 2.5) +
+  geom_line(aes(linetype = type, color = type), size = 1.5) +
+  geom_point(aes(shape = type, color = type), size = 3) +
   theme(legend.title = element_blank(),
         panel.background = element_rect(fill = "white", colour = "black"),
         panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
         panel.grid.minor = element_line(colour = "grey"),
-        text = element_text(size = 15),
+        text = element_text(size = 25),
         legend.position = "none", legend.text = element_text(size = 15)) +
-  xlab("signal") +
+  xlab("Leverage Parameter") +
   ylab("FCR") +
+  geom_hline(yintercept=0.2)+
   scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
+
 
 df = aggregate(res_agg$CI_length ~ res_agg$scale + res_agg$type, FUN = median)
 colnames(df) <-c("signal","type","CI Length")
 CI_length_plot <- df %>%
   ggplot( aes(x=signal, y=`CI Length`, group=type, color=type)) +
-  geom_line(aes(linetype = type, color = type), size = 0.8) +
-  geom_point(aes(shape = type, color = type), size = 2.5) +
+  geom_line(aes(linetype = type, color = type), size = 1.5) +
+  geom_point(aes(shape = type, color = type), size = 3) +
   theme(legend.title = element_blank(),
         panel.background = element_rect(fill = "white", colour = "black"),
         panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
         panel.grid.minor = element_line(colour = "grey"),
-        text = element_text(size = 15),
+        text = element_text(size = 25),
         legend.position = "none", legend.text = element_text(size = 15)) +
-  xlab("signal") +
-  ylab("CI Length") +
-  scale_x_continuous(breaks = seq(0, 0.25, 0.05), limits = c(0,0.2)) +
-  scale_y_continuous(breaks = seq(0, 0.15, 0.05), limits = c(0,0.15)) 
+  xlab("Leverage Parameter") +
+  ylab("CI Length (given nonzero selection)") 
 
 
+df = aggregate(res_agg$FSR~ res_agg$scale + res_agg$type, FUN = mean)
+colnames(df) <-c("signal","type","FSR")
+FSR_plot <- df %>%
+  ggplot( aes(x=signal, y=FSR, group=type, color=type)) +
+  geom_line(aes(linetype = type, color = type), size = 1.5) +
+  geom_point(aes(shape = type, color = type), size = 3) +
+  theme(legend.title = element_blank(),
+        panel.background = element_rect(fill = "white", colour = "black"),
+        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
+        panel.grid.minor = element_line(colour = "grey"),
+        text = element_text(size = 25),
+        legend.position = "none", legend.text = element_text(size = 15)) +
+  xlab("Leverage Parameter") +
+  ylab("FSR") +
+  geom_hline(yintercept=0.2)+
+  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
+
+
+df = aggregate(res_agg$power_sign ~ res_agg$scale + res_agg$type, FUN = mean)
+colnames(df) <-c("signal","type","power_sign")
+power_sign_plot <- df %>%
+  ggplot( aes(x=signal, y=power_sign, group=type, color=type)) +
+  geom_line(aes(linetype = type, color = type), size = 1.5) +
+  geom_point(aes(shape = type, color = type), size = 3) +
+  theme(legend.title = element_blank(),
+        panel.background = element_rect(fill = "white", colour = "black"),
+        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
+        panel.grid.minor = element_line(colour = "grey"),
+        text = element_text(size = 25),
+        legend.position = "none", legend.text = element_text(size = 15)) +
+  xlab("Leverage Parameter") +
+  ylab("Power Sign") +
+  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
+
+
+
+df = aggregate(res_agg$power_selected ~ res_agg$scale + res_agg$type, FUN = mean)
+colnames(df) <-c("signal","type","power_selected")
+power_selected_plot <- df %>%
+  ggplot( aes(x=signal, y=power_selected, group=type, color=type)) +
+  geom_line(aes(linetype = type, color = type), size = 1.5) +
+  geom_point(aes(shape = type, color = type), size = 3) +
+  theme(legend.title = element_blank(),
+        panel.background = element_rect(fill = "white", colour = "black"),
+        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
+        panel.grid.minor = element_line(colour = "grey"),
+        text = element_text(size = 25),
+        legend.position = "none", legend.text = element_text(size = 15)) +
+  xlab("Leverage Parameter") +
+  ylab("Power Selected") +
+  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
+
+
+df = aggregate(res_agg$precision_selected ~ res_agg$scale + res_agg$type, FUN = mean)
+colnames(df) <-c("signal","type","precision_selected")
+precision_selected_plot <- df %>%
+  ggplot( aes(x=signal, y=precision_selected, group=type, color=type)) +
+  geom_line(aes(linetype = type, color = type), size = 1.5) +
+  geom_point(aes(shape = type, color = type), size = 3) +
+  theme(legend.title = element_blank(),
+        panel.background = element_rect(fill = "white", colour = "black"),
+        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
+        panel.grid.minor = element_line(colour = "grey"),
+        text = element_text(size = 25),
+        legend.position = "none", legend.text = element_text(size = 15)) +
+  xlab("Leverage Parameter") +
+  ylab("Precision Selected") +
+  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
+
+ggsave(paste(outdir, "regression_linear_influential_FCR2.pdf",sep=""),FCR_plot)
+ggsave(paste(outdir, "regression_linear_influential_CI_length2.pdf",sep=""),CI_length_plot)
+ggsave(paste(outdir, "regression_linear_influential_FSR2.pdf",sep=""),FSR_plot)
+ggsave(paste(outdir, "regression_linear_influential_power_sign2.pdf",sep=""),power_sign_plot)
+ggsave(paste(outdir, "regression_linear_influential_power_selected2.pdf",sep=""),power_selected_plot)
+ggsave(paste(outdir, "regression_linear_influential_precision_selected2.pdf",sep=""),precision_selected_plot)
+
+################################################################################################################################
+################################################################################################################################
+# Section 3: GLM Figures
+################################################################################################################################
+################################################################################################################################
+
+
+get_metrics_poisson <- function(single_res,x,type="fahrmeir") {
+  if(class(single_res[1]) != "list"){
+    return(c(NA,NA,NA,NA,NA,NA))
+  }
+  CI = single_res$CIs[[x]][[type]]
+  selected = which(!is.na(CI[,1]))
+  beta =  single_res$beta
+  if(sum(is.nan(CI[,1])) > 0){
+    return(c(NA,NA,NA,NA,NA,NA))
+  }
+  if(length(selected) > 0){
+    projected = matrix(NA, nrow = nrow(CI), ncol = 1)
+    projected[selected,] = single_res$projected[[x]]
+    
+    error_FCR = mean(!((CI[,1] < projected) & (CI[,2] > projected)),na.rm=TRUE)
+    CI_length = mean(CI[,2] - CI[,1],na.rm=TRUE)
+    FSR = mean((projected > 0 & CI[,2] < 0) |  (projected < 0 & CI[,1] >0),na.rm=TRUE)  
+    power_sign = mean((projected >0 & CI[,1] > 0) | (projected <0 & CI[,2] <0),na.rm=TRUE)
+    power_selected = sum(abs(beta[selected] > 0)) / (sum(abs(beta)>0))
+    precision_selected = sum(abs(beta[selected]) > 0) / length(selected)   
+  }else {
+    error_FCR = NA
+    CI_length = NA
+    FSR = NA
+    power_sign = NA
+    power_selected = 0 
+    precision_selected = 0
+  }
+  return(c(error_FCR,CI_length,FSR,power_sign,power_selected,precision_selected))
+}
+
+
+get_graphs <- function(wd,model,label,vary_seq,x_label,type) {
+  load(file = paste(wd, model,".Rdata", sep = ""))
+  
+  
+  for(par in vary_seq){
+    agg_masking <- cbind("fission",par,data.frame(t(sapply(result[[as.character(par)]], function(x) get_metrics_poisson(x,"masking",type=type)))))
+    agg_split <- cbind("split",par,data.frame(t(sapply(result[[as.character(par)]], function(x) get_metrics_poisson(x,"split",type=type)))))
+    agg_full <- cbind("full",par,data.frame(t(sapply(result[[as.character(par)]], function(x) get_metrics_poisson(x,"full",type=type)))))
+    
+    
+    colnames(agg_masking) <- c("type",label,"error_FCR","CI_length","FSR","power_sign","power_selected","precision_selected")
+    colnames(agg_split) <- colnames(agg_masking) 
+    colnames(agg_full) <- colnames(agg_masking) 
+    agg <- rbind(agg_masking,agg_split,agg_full)
+    if(par ==vary_seq[1]){
+      res_agg = agg
+    }
+    else{
+      res_agg = rbind(res_agg,agg)
+    }
+  }
+  
+  
+  df = aggregate(res_agg$error_FCR ~ res_agg[,label] + res_agg$type, FUN = mean)
+  colnames(df) <-c(label,"type","FCR")
+  FCR_plot <- df %>%
+    ggplot( aes(x=get(label), y=FCR, group=type, color=type)) +
+    geom_line(aes(linetype = type, color = type), size = 1.5) +
+    geom_point(aes(shape = type, color = type), size = 3) +
+    theme(legend.title = element_blank(),
+          panel.background = element_rect(fill = "white", colour = "black"),
+          panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
+          panel.grid.minor = element_line(colour = "grey"), legend.position= "none",
+          text = element_text(size = 15), legend.text = element_text(size = 15)) +
+    xlab(x_label) +
+    ylab("FCR") +
+    geom_hline(yintercept=0.2)+
+    scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
+  
+  
+  df = aggregate(res_agg$CI_length ~ res_agg[,label] + res_agg$type, FUN = median)
+  colnames(df) <-c(label,"type","CI Length")
+  CI_length_plot <- df %>%
+    ggplot( aes(x=get(label), y=`CI Length`, group=type, color=type)) +
+    geom_line(aes(linetype = type, color = type), size = 1.5) +
+    geom_point(aes(shape = type, color = type), size = 3) +
+    theme(legend.title = element_blank(),
+          panel.background = element_rect(fill = "white", colour = "black"),
+          panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
+          panel.grid.minor = element_line(colour = "grey"), 
+          text = element_text(size = 15),
+          legend.position = "none", legend.text = element_text(size = 15)) +
+    xlab(x_label) +
+    ylab("CI Length (given nonzero selection)") 
+  
+  df = aggregate(res_agg$FSR~ res_agg[,label]  + res_agg$type, FUN = mean)
+  colnames(df) <-c(label,"type","FSR")
+  FSR_plot <- df %>%
+    ggplot( aes(x=get(label), y=FSR, group=type, color=type)) +
+    geom_line(aes(linetype = type, color = type), size = 1.5) +
+    geom_point(aes(shape = type, color = type), size = 3) +
+    theme(legend.title = element_blank(),
+          panel.background = element_rect(fill = "white", colour = "black"),
+          panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
+          panel.grid.minor = element_line(colour = "grey"),
+          text = element_text(size = 15),
+          legend.position = "none", legend.text = element_text(size = 15)) +
+    xlab(x_label) +
+    ylab("FSR") +
+    geom_hline(yintercept=0.2)+
+    scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
+  
+  
+  df = aggregate(res_agg$power_sign ~ res_agg[,label]  + res_agg$type, FUN = mean)
+  colnames(df) <-c(label,"type","power_sign")
+  power_sign_plot <- df %>%
+    ggplot( aes(x=get(label), y=power_sign, group=type, color=type)) +
+    geom_line(aes(linetype = type, color = type), size = 1.5) +
+    geom_point(aes(shape = type, color = type), size = 3) +
+    theme(legend.title = element_blank(),
+          panel.background = element_rect(fill = "white", colour = "black"),
+          panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
+          panel.grid.minor = element_line(colour = "grey"),
+          text = element_text(size = 15),
+          legend.position = "none", legend.text = element_text(size = 15)) +
+    xlab(x_label) +
+    ylab("Power Sign") +
+    scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
+  
+  
+  
+  df = aggregate(res_agg$power_selected ~ res_agg[,label]  + res_agg$type, FUN = mean)
+  colnames(df) <-c(label,"type","power_selected")
+  power_selected_plot <- df %>%
+    ggplot( aes(x=get(label), y=power_selected, group=type, color=type)) +
+    geom_line(aes(linetype = type, color = type), size = 1.5) +
+    geom_point(aes(shape = type, color = type), size = 3) +
+    theme(legend.title = element_blank(),
+          panel.background = element_rect(fill = "white", colour = "black"),
+          panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
+          panel.grid.minor = element_line(colour = "grey"),
+          text = element_text(size = 15),
+          legend.position = "none", legend.text = element_text(size = 15)) +
+    xlab(x_label) +
+    ylab("Power Selected") +
+    scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
+  
+  
+  df = aggregate(res_agg$precision_selected ~ res_agg[,label] + res_agg$type, FUN = mean)
+  colnames(df) <-c(label,"type","precision_selected")
+  precision_selected_plot <- df %>%
+    ggplot( aes(x=get(label), y=precision_selected, group=type, color=type)) +
+    geom_line(aes(linetype = type, color = type), size = 1.5) +
+    geom_point(aes(shape = type, color = type), size = 3) +
+    theme(legend.title = element_blank(),
+          panel.background = element_rect(fill = "white", colour = "black"),
+          panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
+          panel.grid.minor = element_line(colour = "grey"),
+          text = element_text(size = 15),
+          legend.text = element_text(size = 15),legend.position = "none") +
+    xlab(x_label) +
+    ylab("Precision Selected") +
+    scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
+  
+  ggsave(paste(outdir, type, "_", model, "_FCR.pdf",sep=""),FCR_plot)
+  ggsave(paste(outdir, type, "_", model, "_CI_length.pdf",sep=""),CI_length_plot)
+  ggsave(paste(outdir, type, "_", model, "_FSR.pdf",sep=""),FSR_plot)
+  ggsave(paste(outdir, type, "_", model, "_power_sign.pdf",sep=""),power_sign_plot)
+  ggsave(paste(outdir, type, "_", model, "_power_selected.pdf",sep=""),power_selected_plot)
+  ggsave(paste(outdir, type, "_", model, "_precision_selected.pdf",sep=""),precision_selected_plot)
+  
+    return(list(FCR=FCR_plot,
+              CI_length=CI_length_plot,
+              FSR=FSR_plot,
+              power_sign=power_sign_plot,
+              power_selected=power_selected_plot,
+              precision_selected=precision_selected_plot))
+}
+
+
+
+a=get_graphs(wd,"regression_poisson_influential","scale",seq(1, 6, length.out = 6),"Leverage Parameter",'fahrmeir')
+ggarrange(a$FCR,a$CI_length,a$FSR,a$power_sign,a$power_selected,a$precision_selected,ncol=3,nrow=2)
+
+
+a=get_graphs(wd,"regression_poisson_varynum","n",c(1,2,3,log(5000,base=10)),"n",'fahrmeir')
+ggarrange(a$FCR,a$CI_length,a$FSR,a$power_sign,a$power_selected,a$precision_selected,ncol=3,nrow=2)
+
+a=get_graphs(wd,"regression_poisson_varyRho","rho",seq(-0.5, 0.5, length.out = 5),"Correlation Parameter",'fahrmeir')
+ggarrange(a$FCR,a$CI_length,a$FSR,a$power_sign,a$power_selected,a$precision_selected,ncol=3,nrow=2)
+
+
+a=get_graphs(wd,"regression_poisson_varyscale_large","rho",seq(0, 0.5, length.out = 5),"Scale",'fahrmeir')
+ggarrange(a$FCR,a$CI_length,a$FSR,a$power_sign,a$power_selected,a$precision_selected,ncol=3,nrow=2)
+
+
+load(file = paste(wd, "regression_poisson_varyscale_large",".Rdata", sep = ""))
 ################################################################################################################################
 ################################################################################################################################
 # Section 5 Figures: Trend Filtering

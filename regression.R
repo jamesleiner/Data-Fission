@@ -1,18 +1,20 @@
 
 fahrmeir_CIs <- function(infer_model,alpha){
   resid = infer_model$fitted.values - infer_model$y
+  Hn_inv <- vcov(infer_model)
+  
+  
   if(infer_model$family$family == "poisson"){
-    V = diag(infer_model$fitted.values)
+    V = infer_model$fitted.values
   }
   if(infer_model$family$family == "binomial"){
-    V = diag(infer_model$fitted.values *(1-infer_model$fitted.values))
+    V = infer_model$fitted.values *(1-infer_model$fitted.values)
   }
   
   Vn <- t(infer_model$x) %*% diag(resid**2) %*% infer_model$x
-  Hn <- t(infer_model$x) %*% V %*% infer_model$x 
-  vcov <- solve(Hn) %*% Vn %*% solve(Hn)
+  vcov <- Hn_inv  %*% Vn %*% Hn_inv 
   se <- sqrt(diag(vcov))
-  CI <- cbind(infer_model$coefficients + qnorm(alpha)*se,infer_model$coefficients- qnorm(alpha)*se)
+  CI <- cbind(infer_model$coefficients + qnorm(alpha/2)*se,infer_model$coefficients- qnorm(alpha/2)*se)
   return(CI) 
 }
 
@@ -30,7 +32,8 @@ experiment_poisson = function(para_vary){
     selected_list = list()
     projected = list()
     
-    dat = generate_poisson(n = n, p = p, beta = beta*scale, type = type, rho = rho)
+    beta= beta*scale
+    dat = generate_poisson(n = n, p = p, beta = beta, type = type, rho = rho)
     
     if ("masking" %in% methods) {
       g_Y = sapply(dat$Y, function(x){rbinom(1, size = x, prob = prob)})
@@ -38,14 +41,16 @@ experiment_poisson = function(para_vary){
       
       select_model = cv.glmnet(dat$X, g_Y, family = "poisson")
       selected = which(coef(select_model, s = 'lambda.1se')[-1] != 0) 
+      #selected = which(beta !=0)
       
       CIs[["masking"]]$standard = matrix(NA, nrow = p, ncol = 2)
       CIs[["masking"]]$sandwich = matrix(NA, nrow = p, ncol = 2)
       CIs[["masking"]]$fahrmeir = matrix(NA, nrow = p, ncol = 2)
+      #CIs[["masking"]]$fahrmeir2 = matrix(NA, nrow = p, ncol = 2)
       if (length(selected) > 0) {
         
         selected_list[["masking"]] = selected
-        off = rep(offset(log(1/(1-prob))),length(dat$Y))
+        off = rep(offset(log(1-prob)),length(dat$Y))
         infer_model = glm(h_Y ~ dat$X[,selected], family = "poisson",x=TRUE,y=TRUE, offset = off)
         temp = tryCatch({confint(infer_model, level = 1 - alpha)[-1,] },
                         error=function(cond){ return(matrix(NA, nrow = length(selected), ncol = 2) ) })
@@ -56,6 +61,9 @@ experiment_poisson = function(para_vary){
         temp = tryCatch({ fahrmeir_CIs(infer_model,alpha)[-1,]},
                         error=function(cond){ return(matrix(NA, nrow = length(selected), ncol = 2) ) })
         CIs[["masking"]]$fahrmeir[selected,] = temp
+        #sum1 <- gee(h_Y ~ dat$X[,selected], id=dat$cluster, family=poisson, scale.fix=TRUE)
+        #se <- sqrt(diag(sum1$robust.variance))
+        #CIs[["masking"]]$fahrmeir2[selected,] <- cbind(infer_model$coefficients + qnorm(alpha/2)*se,infer_model$coefficients- qnorm(alpha/2)*se)[-1,]
         projected[["masking"]] = glm(exp(dat$X%*%beta) ~ dat$X[,selected], family = "poisson")$coefficients[-1]
       }
       
@@ -66,7 +74,7 @@ experiment_poisson = function(para_vary){
       CIs[["full"]]$standard = matrix(NA, nrow = p, ncol = 2)
       CIs[["full"]]$sandwich = matrix(NA, nrow = p, ncol = 2)
       CIs[["full"]]$fahrmeir = matrix(NA, nrow = p, ncol = 2)
-      
+      #CIs[["full"]]$fahrmeir2 = matrix(NA, nrow = p, ncol = 2)
       if (length(selected) > 0) {
         selected_list[["full"]] = selected
         infer_model = glm(dat$Y ~ dat$X[,selected], family = "poisson",x=TRUE,y=TRUE)
@@ -79,6 +87,9 @@ experiment_poisson = function(para_vary){
         temp = tryCatch({ fahrmeir_CIs(infer_model,alpha)[-1,]},
                         error=function(cond){ return(matrix(NA, nrow = length(selected), ncol = 2) ) })
         CIs[["full"]]$fahrmeir[selected,] = temp
+        #sum1 <- gee(dat$Y ~ dat$X[,selected], id=dat$cluster, family=poisson, scale.fix=TRUE)
+        #se <- sqrt(diag(sum1$robust.variance))
+        #CIs[["full"]]$fahrmeir2[selected,] <- cbind(infer_model$coefficients + qnorm(alpha/2)*se,infer_model$coefficients- qnorm(alpha/2)*se)[-1,]
         projected[["full"]] = glm(exp(dat$X%*%beta) ~ dat$X[,selected], family = "poisson")$coefficients[-1]
       }
     }
@@ -89,6 +100,7 @@ experiment_poisson = function(para_vary){
       CIs[["split"]]$standard = matrix(NA, nrow = p, ncol = 2)
       CIs[["split"]]$sandwich = matrix(NA, nrow = p, ncol = 2)
       CIs[["split"]]$fahrmeir = matrix(NA, nrow = p, ncol = 2)
+      #CIs[["split"]]$fahrmeir2 = matrix(NA, nrow = p, ncol = 2)
       if (length(selected) > 0) {
         selected_list["split"] = selected
         infer_model = glm(dat$Y[-split_ind] ~ dat$X[-split_ind,selected],x=TRUE,y=TRUE,family = "poisson")
@@ -101,6 +113,11 @@ experiment_poisson = function(para_vary){
         temp = tryCatch({ fahrmeir_CIs(infer_model,alpha)[-1,]},
                         error=function(cond){ return(matrix(NA, nrow = length(selected), ncol = 2) ) })
         CIs[["split"]]$fahrmeir[selected,] = temp
+        #sum1 <- gee(dat$Y[-split_ind] ~ dat$X[-split_ind,selected],id=factor(1:length(dat$Y[-split_ind])),  family=poisson,scale.fix=TRUE)
+        #se <- sqrt(diag(sum1$robust.variance))
+        #CIs[["split"]]$fahrmeir2[selected,] <- cbind(infer_model$coefficients + qnorm(alpha/2)*se,infer_model$coefficients- qnorm(alpha/2)*se)[-1,]
+        
+        
         projected[["split"]] = glm(exp(dat$X%*%beta) ~ dat$X[,selected], family = "poisson")$coefficients[-1]
       }
     }
@@ -108,7 +125,7 @@ experiment_poisson = function(para_vary){
   }
   
   #result_poisson = lapply(1:R, wrapper_func)
-  result_poisson = mclapply(1:R, wrapper_func, mc.cores = detectCores())
+  result_poisson = mclapply(1:R, wrapper_func, mc.cores = detectCores(),mc.preschedule = FALSE)
   return(result_poisson)
 }
 
@@ -252,12 +269,12 @@ experiment_logistic = function(para_vary){
       selected[["masking"]] = which(coef(select_model, s = 'lambda.1se') != 0)
       if (length(selected[["masking"]]) > 0) {
         infer_model = glm(dat$Y ~ X[,selected[["masking"]]] -1, family = "binomial")
-        temp = conf_int(infer_model, vcov = "CR0", cluster = dat$cluster, level = 1 - alpha)
+        temp = conf_int(infer_model, vcov = "CR2", cluster = dat$cluster, level = 1 - alpha)
         CIs[["masking"]] = cbind(temp[,5],temp[,6])
         # cov_vec[["masking"]] = temp[,2]
         
         sim_infer_model = glm(sim_dat$Y~ sim_X[,selected[["masking"]]] -1, family = "binomial")
-        temp = conf_int(sim_infer_model, vcov = "CR0", cluster = dat$cluster, level = 1 - alpha)
+        temp = conf_int(sim_infer_model, vcov = "CR2", cluster = dat$cluster, level = 1 - alpha)
         nCIs[["masking"]] = cbind(temp[,5],temp[,6])
         
         # B = diag(bread(infer_model)); M = diag(meatHC(infer_model))
@@ -292,12 +309,12 @@ experiment_logistic = function(para_vary){
       selected[["full"]] = which(coef(select_model, s = 'lambda.1se') != 0)
       if (length(selected[["full"]]) > 0) {
         infer_model = glm(dat$Y ~ X[,selected[["full"]]] -1, family = "binomial")
-        temp = conf_int(infer_model, vcov = "CR0", cluster = dat$cluster, level = 1 - alpha)
+        temp = conf_int(infer_model, vcov = "CR2", cluster = dat$cluster, level = 1 - alpha)
         CIs[["full"]] = cbind(temp[,5],temp[,6])
         # cov_vec[["full"]] = temp[,2]
         
         sim_infer_model = glm(sim_dat$Y~ sim_X[,selected[["full"]]] -1, family = "binomial")
-        temp = conf_int(sim_infer_model, vcov = "CR0", cluster = dat$cluster, level = 1 - alpha)
+        temp = conf_int(sim_infer_model, vcov = "CR2", cluster = dat$cluster, level = 1 - alpha)
         nCIs[["full"]] = cbind(temp[,5],temp[,6])
         
         projected[["full"]] = projected_beta(
@@ -321,13 +338,13 @@ experiment_logistic = function(para_vary){
       if (length(selected[["split"]]) > 0) {
         infer_model = glm(dat$Y[split_ind == 0] ~ X[split_ind == 0,selected[["split"]]] -1,
                           family = "binomial")
-        temp = conf_int(infer_model, vcov = "CR0", cluster = factor(1:(n - sum(split_ind))),
+        temp = conf_int(infer_model, vcov = "CR2", cluster = factor(1:(n - sum(split_ind))),
                         level = 1 - alpha)
         CIs[["split"]] = cbind(temp[,5],temp[,6])
         # cov_vec[["split"]] = temp[,2]
         
         sim_infer_model = glm(sim_dat$Y~ sim_X[,selected[["split"]]] -1, family = "binomial")
-        temp = conf_int(sim_infer_model, vcov = "CR0", cluster = dat$cluster, level = 1 - alpha)
+        temp = conf_int(sim_infer_model, vcov = "CR2", cluster = dat$cluster, level = 1 - alpha)
         nCIs[["split"]] = cbind(temp[,5],temp[,6])
         
         projected[["split"]] = projected_beta( 
