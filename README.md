@@ -3,7 +3,14 @@
 This repository contains code to replicate all figures and experiments found in our paper: [Data Fission: splitting a single data point](https://arxiv.org/abs/2112.11079).
 
 ## Pre-requisites
-Prior to running the code, please install and download the [trendfiltering](https://capolitsch.github.io/trendfiltering/) package by  [Collin Politsch](https://collinpolitsch.com/). The remainder of the pre-requistie packages can be download through the CRAN repository. 
+Prior to running the code, please install and download the [trendfiltering](https://capolitsch.github.io/trendfiltering/) package by  [Collin Politsch](https://collinpolitsch.com/) as follows.
+
+```
+install.packages("remotes")
+remotes::install_github("capolitsch/trendfiltering")
+```
+
+The remainder of the pre-requistie packages can be download through the CRAN repository. 
 
 ## Instructions
 * The experiments for the interactive multiple testing application (section 3) need to be run on a cluster. To do this, please
