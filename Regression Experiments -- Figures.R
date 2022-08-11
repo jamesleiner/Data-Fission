@@ -40,152 +40,146 @@ get_metrics_linear <- function(single_res,x,beta) {
 }
 
 
-# Figure 9 
-model = "regression_linear_influential6"
-p=20
-load(file = paste(wd, model,".Rdata", sep = ""))
-beta= c(1, rep(0,15),1,-1,1,0)
-influ_seq = seq(2, 6, length.out = 5)
-for(influ in influ_seq){
-  agg_masking <- cbind("masking",influ,data.frame(t(sapply(result[[as.character(influ)]], function(x) get_metrics_linear(x,"masking",beta)))))
-  agg_split <- cbind("split",influ,data.frame(t(sapply(result[[as.character(influ)]], function(x) get_metrics_linear(x,"split",beta)))))
-  agg_full <- cbind("full",influ,data.frame(t(sapply(result[[as.character(influ)]], function(x) get_metrics_linear(x,"full",beta)))))
+
+get_graphs_linear <- function(wd,model,label,vary_seq,xlab){
+  load(file = paste(wd, model,".Rdata", sep = ""))
+  for(par in vary_seq){
+    agg_masking <- cbind("masking",par,data.frame(t(sapply(result[[as.character(par)]], function(x) get_metrics_linear(x,"masking",beta)))))
+    agg_split <- cbind("split",par,data.frame(t(sapply(result[[as.character(par)]], function(x) get_metrics_linear(x,"split",beta)))))
+    agg_full <- cbind("full",par,data.frame(t(sapply(result[[as.character(par)]], function(x) get_metrics_linear(x,"full",beta)))))
+    colnames(agg_masking) <- c("type","scale","error_FCR","CI_length","FSR","power_sign","power_selected","precision_selected")
+    colnames(agg_split) <- colnames(agg_masking) 
+    colnames(agg_full) <- colnames(agg_masking) 
+    agg <- rbind(agg_masking,agg_split,agg_full)
+    if(par == vary_seq[1]){
+      res_agg = agg
+    }
+    else{
+      res_agg = rbind(res_agg,agg)
+    }
+  }
+  res_agg$type = as.character(res_agg$type)
+  res_agg[res_agg$type == "masking",'type'] = "blur"
+  df = aggregate(res_agg$error_FCR ~ res_agg$scale + res_agg$type, FUN = mean)
+  colnames(df) <-c("signal","type","FCR")
+  FCR_plot <- df %>%
+    ggplot( aes(x=signal, y=FCR, group=type, color=type)) +
+    geom_line(aes(linetype = type, color = type), size = 1.5) +
+    geom_point(aes(shape = type, color = type), size = 3) +
+    theme(legend.title = element_blank(),
+          panel.background = element_rect(fill = "white", colour = "black"),
+          panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
+          panel.grid.minor = element_line(colour = "grey"),
+          text = element_text(size = 25),
+          legend.position = "none", legend.text = element_text(size = 15)) +
+    xlab(label) +
+    ylab("FCR") +
+    geom_hline(yintercept=0.2)+
+    scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
   
-  colnames(agg_masking) <- c("type","scale","error_FCR","CI_length","FSR","power_sign","power_selected","precision_selected")
-  colnames(agg_split) <- colnames(agg_masking) 
-  colnames(agg_full) <- colnames(agg_masking) 
-  agg <- rbind(agg_masking,agg_split,agg_full)
-  if(influ ==influ_seq[1]){
-    res_agg = agg
-  }
-  else{
-    res_agg = rbind(res_agg,agg)
-  }
+  
+  df = aggregate(res_agg$CI_length ~ res_agg$scale + res_agg$type, FUN = median)
+  colnames(df) <-c("signal","type","CI Length")
+  CI_length_plot <- df %>%
+    ggplot( aes(x=signal, y=`CI Length`, group=type, color=type)) +
+    geom_line(aes(linetype = type, color = type), size = 1.5) +
+    geom_point(aes(shape = type, color = type), size = 3) +
+    theme(legend.title = element_blank(),
+          panel.background = element_rect(fill = "white", colour = "black"),
+          panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
+          panel.grid.minor = element_line(colour = "grey"),
+          text = element_text(size = 25),
+          legend.position = "none", legend.text = element_text(size = 15)) +
+    xlab(label) +
+    ylab("CI Length (given nonzero selection)") 
+  
+  
+  df = aggregate(res_agg$FSR~ res_agg$scale + res_agg$type, FUN = mean)
+  colnames(df) <-c("signal","type","FSR")
+  FSR_plot <- df %>%
+    ggplot( aes(x=signal, y=FSR, group=type, color=type)) +
+    geom_line(aes(linetype = type, color = type), size = 1.5) +
+    geom_point(aes(shape = type, color = type), size = 3) +
+    theme(legend.title = element_blank(),
+          panel.background = element_rect(fill = "white", colour = "black"),
+          panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
+          panel.grid.minor = element_line(colour = "grey"),
+          text = element_text(size = 25),
+          legend.position = "none", legend.text = element_text(size = 15)) +
+    xlab(label) +
+    ylab("FSR") +
+    geom_hline(yintercept=0.2)+
+    scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
+  
+  
+  df = aggregate(res_agg$power_sign ~ res_agg$scale + res_agg$type, FUN = mean)
+  colnames(df) <-c("signal","type","power_sign")
+  power_sign_plot <- df %>%
+    ggplot( aes(x=signal, y=power_sign, group=type, color=type)) +
+    geom_line(aes(linetype = type, color = type), size = 1.5) +
+    geom_point(aes(shape = type, color = type), size = 3) +
+    theme(legend.title = element_blank(),
+          panel.background = element_rect(fill = "white", colour = "black"),
+          panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
+          panel.grid.minor = element_line(colour = "grey"),
+          text = element_text(size = 25),
+          legend.position = "none", legend.text = element_text(size = 15)) +
+    xlab(label) +
+    ylab("Power Sign") +
+    scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
+  
+  
+  
+  df = aggregate(res_agg$power_selected ~ res_agg$scale + res_agg$type, FUN = mean)
+  colnames(df) <-c("signal","type","power_selected")
+  power_selected_plot <- df %>%
+    ggplot( aes(x=signal, y=power_selected, group=type, color=type)) +
+    geom_line(aes(linetype = type, color = type), size = 1.5) +
+    geom_point(aes(shape = type, color = type), size = 3) +
+    theme(legend.title = element_blank(),
+          panel.background = element_rect(fill = "white", colour = "black"),
+          panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
+          panel.grid.minor = element_line(colour = "grey"),
+          text = element_text(size = 25),
+          legend.position = "none", legend.text = element_text(size = 15)) +
+    xlab(label) +
+    ylab("Power Selected") +
+    scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
+  
+  
+  df = aggregate(res_agg$precision_selected ~ res_agg$scale + res_agg$type, FUN = mean)
+  colnames(df) <-c("signal","type","precision_selected")
+  precision_selected_plot <- df %>%
+    ggplot( aes(x=signal, y=precision_selected, group=type, color=type)) +
+    geom_line(aes(linetype = type, color = type), size = 1.5) +
+    geom_point(aes(shape = type, color = type), size = 3) +
+    theme(legend.title = element_blank(),
+          panel.background = element_rect(fill = "white", colour = "black"),
+          panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
+          panel.grid.minor = element_line(colour = "grey"),
+          text = element_text(size = 25),
+          legend.position = "none", legend.text = element_text(size = 15)) +
+    xlab(label) +
+    ylab("Precision Selected") +
+    scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
+  
+  
+  ggsave(paste(outdir,model, "_FCR.pdf",sep=""),FCR_plot)
+  ggsave(paste(outdir, model, "_CI_length.pdf",sep=""),CI_length_plot)
+  ggsave(paste(outdir, model, "_FSR.pdf",sep=""),FSR_plot)
+  ggsave(paste(outdir, model, "_power_sign.pdf",sep=""),power_sign_plot)
+  ggsave(paste(outdir, model, "_power_selected.pdf",sep=""),power_selected_plot)
+  ggsave(paste(outdir, model, "_precision_selected.pdf",sep=""),precision_selected_plot)
+  return(list(FCR=FCR_plot,
+              CI_length=CI_length_plot,
+              FSR=FSR_plot,
+              power_sign=power_sign_plot,
+              power_selected=power_selected_plot,
+              precision_selected=precision_selected_plot))
 }
-res_agg$type = as.character(res_agg$type)
-res_agg[res_agg$type == "masking",'type'] = "blur"
 
 
-
-
-df = aggregate(res_agg$error_FCR ~ res_agg$scale + res_agg$type, FUN = mean)
-colnames(df) <-c("signal","type","FCR")
-FCR_plot <- df %>%
-  ggplot( aes(x=signal, y=FCR, group=type, color=type)) +
-  geom_line(aes(linetype = type, color = type), size = 1.5) +
-  geom_point(aes(shape = type, color = type), size = 3) +
-  theme(legend.title = element_blank(),
-        panel.background = element_rect(fill = "white", colour = "black"),
-        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
-        panel.grid.minor = element_line(colour = "grey"),
-        text = element_text(size = 25),
-        legend.position = "none", legend.text = element_text(size = 15)) +
-  xlab("Leverage Parameter") +
-  ylab("FCR") +
-  geom_hline(yintercept=0.2)+
-  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
-
-
-df = aggregate(res_agg$CI_length ~ res_agg$scale + res_agg$type, FUN = median)
-colnames(df) <-c("signal","type","CI Length")
-CI_length_plot <- df %>%
-  ggplot( aes(x=signal, y=`CI Length`, group=type, color=type)) +
-  geom_line(aes(linetype = type, color = type), size = 1.5) +
-  geom_point(aes(shape = type, color = type), size = 3) +
-  theme(legend.title = element_blank(),
-        panel.background = element_rect(fill = "white", colour = "black"),
-        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
-        panel.grid.minor = element_line(colour = "grey"),
-        text = element_text(size = 25),
-        legend.position = "none", legend.text = element_text(size = 15)) +
-  xlab("Leverage Parameter") +
-  ylab("CI Length (given nonzero selection)") 
-
-
-df = aggregate(res_agg$FSR~ res_agg$scale + res_agg$type, FUN = mean)
-colnames(df) <-c("signal","type","FSR")
-FSR_plot <- df %>%
-  ggplot( aes(x=signal, y=FSR, group=type, color=type)) +
-  geom_line(aes(linetype = type, color = type), size = 1.5) +
-  geom_point(aes(shape = type, color = type), size = 3) +
-  theme(legend.title = element_blank(),
-        panel.background = element_rect(fill = "white", colour = "black"),
-        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
-        panel.grid.minor = element_line(colour = "grey"),
-        text = element_text(size = 25),
-        legend.position = "none", legend.text = element_text(size = 15)) +
-  xlab("Leverage Parameter") +
-  ylab("FSR") +
-  geom_hline(yintercept=0.2)+
-  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
-
-
-df = aggregate(res_agg$power_sign ~ res_agg$scale + res_agg$type, FUN = mean)
-colnames(df) <-c("signal","type","power_sign")
-power_sign_plot <- df %>%
-  ggplot( aes(x=signal, y=power_sign, group=type, color=type)) +
-  geom_line(aes(linetype = type, color = type), size = 1.5) +
-  geom_point(aes(shape = type, color = type), size = 3) +
-  theme(legend.title = element_blank(),
-        panel.background = element_rect(fill = "white", colour = "black"),
-        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
-        panel.grid.minor = element_line(colour = "grey"),
-        text = element_text(size = 25),
-        legend.position = "none", legend.text = element_text(size = 15)) +
-  xlab("Leverage Parameter") +
-  ylab("Power Sign") +
-  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
-
-
-
-df = aggregate(res_agg$power_selected ~ res_agg$scale + res_agg$type, FUN = mean)
-colnames(df) <-c("signal","type","power_selected")
-power_selected_plot <- df %>%
-  ggplot( aes(x=signal, y=power_selected, group=type, color=type)) +
-  geom_line(aes(linetype = type, color = type), size = 1.5) +
-  geom_point(aes(shape = type, color = type), size = 3) +
-  theme(legend.title = element_blank(),
-        panel.background = element_rect(fill = "white", colour = "black"),
-        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
-        panel.grid.minor = element_line(colour = "grey"),
-        text = element_text(size = 25),
-        legend.position = "none", legend.text = element_text(size = 15)) +
-  xlab("Leverage Parameter") +
-  ylab("Power Selected") +
-  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
-
-
-df = aggregate(res_agg$precision_selected ~ res_agg$scale + res_agg$type, FUN = mean)
-colnames(df) <-c("signal","type","precision_selected")
-precision_selected_plot <- df %>%
-  ggplot( aes(x=signal, y=precision_selected, group=type, color=type)) +
-  geom_line(aes(linetype = type, color = type), size = 1.5) +
-  geom_point(aes(shape = type, color = type), size = 3) +
-  theme(legend.title = element_blank(),
-        panel.background = element_rect(fill = "white", colour = "black"),
-        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
-        panel.grid.minor = element_line(colour = "grey"),
-        text = element_text(size = 25),
-        legend.position = "none", legend.text = element_text(size = 15)) +
-  xlab("Leverage Parameter") +
-  ylab("Precision Selected") +
-  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
-
-ggsave(paste(outdir, "regression_linear_influential_FCR2.pdf",sep=""),FCR_plot)
-ggsave(paste(outdir, "regression_linear_influential_CI_length2.pdf",sep=""),CI_length_plot)
-ggsave(paste(outdir, "regression_linear_influential_FSR2.pdf",sep=""),FSR_plot)
-ggsave(paste(outdir, "regression_linear_influential_power_sign2.pdf",sep=""),power_sign_plot)
-ggsave(paste(outdir, "regression_linear_influential_power_selected2.pdf",sep=""),power_selected_plot)
-ggsave(paste(outdir, "regression_linear_influential_precision_selected2.pdf",sep=""),precision_selected_plot)
-
-################################################################################################################################
-################################################################################################################################
-# Section 5 Figures: Poisson Regression
-################################################################################################################################
-################################################################################################################################
-
-
-get_metrics_poisson <- function(single_res,x,type="fahrmeir") {
+get_metrics <- function(single_res,x,type="fahrmeir") {
   if(class(single_res[1]) != "list"){
     return(c(NA,NA,NA,NA,NA,NA))
   }
@@ -217,14 +211,14 @@ get_metrics_poisson <- function(single_res,x,type="fahrmeir") {
 }
 
 
-get_graphs <- function(wd,model,label,vary_seq,type){
+get_graphs <- function(wd,model,label,vary_seq,type,xlab){
   load(file = paste(wd, model,".Rdata", sep = ""))
   
   for(par in vary_seq){
     print(par)
-    agg_masking <- cbind("fission",par,data.frame(t(sapply(result[[as.character(par)]], function(x) get_metrics_poisson(x,"masking",type=type)))))
-    agg_split <- cbind("split",par,data.frame(t(sapply(result[[as.character(par)]], function(x) get_metrics_poisson(x,"split",type=type)))))
-    agg_full <- cbind("full",par,data.frame(t(sapply(result[[as.character(par)]], function(x) get_metrics_poisson(x,"full",type=type)))))
+    agg_masking <- cbind("fission",par,data.frame(t(sapply(result[[as.character(par)]], function(x) get_metrics(x,"masking",type=type)))))
+    agg_split <- cbind("split",par,data.frame(t(sapply(result[[as.character(par)]], function(x) get_metrics(x,"split",type=type)))))
+    agg_full <- cbind("full",par,data.frame(t(sapply(result[[as.character(par)]], function(x) get_metrics(x,"full",type=type)))))
     
     
     colnames(agg_masking) <- c("type",label,"error_FCR","CI_length","FSR","power_sign","power_selected","precision_selected")
@@ -251,7 +245,7 @@ get_graphs <- function(wd,model,label,vary_seq,type){
           panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
           panel.grid.minor = element_line(colour = "grey"), legend.position= "none",
           text = element_text(size = 15), legend.text = element_text(size = 15)) +
-    xlab("Leverage Parameter") +
+    xlab(xlab) +
     ylab("FCR") +
     geom_hline(yintercept=0.2)+
     scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
@@ -268,7 +262,7 @@ get_graphs <- function(wd,model,label,vary_seq,type){
           panel.grid.minor = element_line(colour = "grey"), 
           text = element_text(size = 15),
           legend.position = "none", legend.text = element_text(size = 15)) +
-    xlab("Scale") +
+    xlab(xlab) +
     ylab("CI Length (given nonzero selection)") 
   
   df = aggregate(res_agg$FSR~ res_agg[,2] + res_agg$type, FUN = mean)
@@ -283,7 +277,7 @@ get_graphs <- function(wd,model,label,vary_seq,type){
           panel.grid.minor = element_line(colour = "grey"),
           text = element_text(size = 15),
           legend.position = "none", legend.text = element_text(size = 15)) +
-    xlab("Leverage Parameter") +
+    xlab(xlab) +
     ylab("FSR") +
     geom_hline(yintercept=0.2)+
     scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
@@ -301,7 +295,7 @@ get_graphs <- function(wd,model,label,vary_seq,type){
           panel.grid.minor = element_line(colour = "grey"),
           text = element_text(size = 15),
           legend.position = "none", legend.text = element_text(size = 15)) +
-    xlab("Leverage Parameter") +
+    xlab(xlab) +
     ylab("Power Sign") +
     scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
   
@@ -318,7 +312,7 @@ get_graphs <- function(wd,model,label,vary_seq,type){
           panel.grid.minor = element_line(colour = "grey"),
           text = element_text(size = 15),
           legend.position = "none", legend.text = element_text(size = 15)) +
-    xlab("Leverage Parameter") +
+    xlab(xlab) +
     ylab("Power Selected") +
     scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
   
@@ -332,10 +326,10 @@ get_graphs <- function(wd,model,label,vary_seq,type){
     theme(legend.title = element_blank(),
           panel.background = element_rect(fill = "white", colour = "black"),
           panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
-          panel.grid.minor = element_line(colour = "grey"),legend.position = "bottom",
+          panel.grid.minor = element_line(colour = "grey"),legend.position = "none",
           text = element_text(size = 15),
           legend.text = element_text(size = 15)) +
-    xlab("Leverage Parameter") +
+    xlab(xlab) +
     ylab("Precision Selected") +
     scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
   
@@ -356,12 +350,21 @@ get_graphs <- function(wd,model,label,vary_seq,type){
 
 
 
-a= get_graphs(wd,"regression_poisson_influential","scale",vary_seq = seq(1, 6, length.out = 6),type='fahrmeir')
-a= get_graphs(wd,"regression_poisson_influential","scale",vary_seq = seq(1, 6, length.out = 6),type='sandwich')
-a= get_graphs(wd,"regression_poisson_varyscale","scale",vary_seq = seq(0, 0.5, length.out = 5),type='fahrmeir')
-a= get_graphs(wd,"regression_poisson_varyscale","scale",vary_seq = seq(0, 0.5, length.out = 5),type='sandwich')
-a= get_graphs(wd,"regression_poisson_varyRho","rho",vary_seq = seq(-0.5, 0.5, length.out = 5),type='fahrmeir')
-a= get_graphs(wd,"regression_poisson_varyRho","rho",vary_seq = seq(-0.5, 0.5, length.out = 5),type='sandwich')
+get_graphs_linear(wd,"regression_linear_influential","scale",seq(2, 6, length.out = 5),"Leverage Parameter")
+get_graphs_linear(wd,"regression_linear_independent","scale",seq(0, 0.2, length.out = 5),"Scale")
+get_graphs_linear(wd,"regression_linear_dependent","rho",seq(-0.5, 0.5, length.out = 5),"Rho")
+get_graphs(wd,"regression_poisson_influential","scale",vary_seq = seq(2, 6, length.out = 5),type='fahrmeir',xlab="Leverage Parameter")
+get_graphs(wd,"regression_poisson_influential","scale",vary_seq = seq(2, 6, length.out = 5),type='sandwich',xlab="Leverage Parameter")
+get_graphs(wd,"regression_poisson_varyscale","scale",vary_seq = seq(0, 0.5, length.out = 5),type='fahrmeir',xlab="Scale")
+get_graphs(wd,"regression_poisson_varyscale","scale",vary_seq = seq(0, 0.5, length.out = 5),type='sandwich',xlab="Scale")
+get_graphs(wd,"regression_poisson_varyRho","rho",vary_seq = seq(-0.5, 0.5, length.out = 5),type='fahrmeir',xlab="Correlation (rho)")
+get_graphs(wd,"regression_poisson_varyRho","rho",vary_seq = seq(-0.5, 0.5, length.out = 5),type='sandwich',xlab="Correlation (rho)")
+get_graphs(wd,"regression_logistic_varyscale","scale",vary_seq = seq(0, 0.5, length.out = 6),type='fahrmeir',xlab="Scale")
+get_graphs(wd,"regression_logistic_varyscale","scale",vary_seq = seq(0, 0.5, length.out = 6),type='sandwich',xlab="Scale")
+get_graphs(wd,"regression_logistic_varyprob","prob",vary_seq = seq(0.05, 0.45, 0.05),type='fahrmeir',xlab="Masking Probability")
+get_graphs(wd,"regression_logistic_varyprob","prob",vary_seq = seq(0.05, 0.45, 0.05),type='sandwich',xlab="Masking Probability")
+
+
 
 
 ################################################################################################################################
@@ -626,7 +629,7 @@ for (nk in 190:197) {
 
 ################################################################################################################################
 ################################################################################################################################
-# Section 5 Figures: Trend Filtering (re-do)
+# Section 5 Figures: Trend Filtering 
 ################################################################################################################################
 ################################################################################################################################
 
@@ -1029,485 +1032,4 @@ plot_split_CI_length_median_uniform  = ggplot(df, aes(sigma, prob, fill = values
   ylab("Probability of new knots") +
   scale_fill_gradient(high="violetred1", low= "slategray1", limits = c(0,0.3))
 ggsave(paste(outdir,"CI_length_median_uniform_split_CV.png",sep=""),plot=plot_split_CI_length_median_uniform)
-
-
-
-
-################################################################################################################################
-################################################################################################################################
-# Section A.1 Figures: Poisson Regression
-################################################################################################################################
-################################################################################################################################
-
-
-###########################################################
-#Figure 16: Example Confidence Intervals
-###########################################################
-
-
-
-###########################################################
-#Figure 17: Simulations varying signal strength
-###########################################################
-
-
-
-###########################################################
-#Figure 18: Simulations varying correlation parameter
-###########################################################\
-
-
-model = "regression_poisson_dependent_varyRho"
-load(file = paste(wd, model,".Rdata", sep = ""))
-
-
-################################################################################################################################
-################################################################################################################################
-# Section A.2 Figures: Logistic Regression
-################################################################################################################################
-################################################################################################################################
-
-
-process_result = function(single_res, mu_0 = 0) {
-  power = sapply(single_res$rejections, function(x) {sum(single_res$mu > mu_0 & x)/sum(single_res$mu > mu_0)})
-  error_FDR = sapply(single_res$rejections, function(x) {sum(single_res$mu == mu_0 & x)/max(sum(x), 1)})
-  error_FCR = sapply(single_res$CIs, function(x) {
-    sum(x[,1] > single_res$mu | x[,2] < single_res$mu, na.rm = TRUE)/max(sum(!is.na(x[,1])), 1)
-  })
-  s = lapply(single_res$CIs, function(x) {
-    s = rep(0, nrow(x))
-    s = 1*(x[,1] > mu_0) + (-1)*(x[,2] < mu_0)
-    return(s)
-  })
-  error_FSR = sapply(s, function(x) {
-    sum((single_res$mu == mu_0 & x != 0) | (single_res$mu > mu_0 & x != 1), na.rm = TRUE)/max(sum(!is.na(x)), 1)
-  })
-  error_FPR = sapply(s, function(x) {
-    sum(single_res$mu == mu_0 & x == 1, na.rm = TRUE)/max(sum(!is.na(x)), 1)
-  })
-  rejected_FNR = sapply(s, function(x) {
-    sum(single_res$mu > mu_0 & x == -1, na.rm = TRUE)/max(sum(!is.na(x) & single_res$mu > mu_0), 1)
-  })
-  rejected_FZR = sapply(s, function(x) {
-    sum(single_res$mu > mu_0 & x == 0, na.rm = TRUE)/max(sum(!is.na(x) & single_res$mu > mu_0), 1)
-  })
-  true_FNR = sapply(s, function(x) {
-    sum(single_res$mu > mu_0 & x == -1, na.rm = TRUE)/max(sum(single_res$mu > mu_0), 1)
-  })
-  true_FZR = sapply(s, function(x) {
-    sum(single_res$mu > mu_0 & x == 0, na.rm = TRUE)/max(sum(single_res$mu > mu_0), 1)
-  })
-  type_II_sign = sapply(s, function(x) {
-    sum(single_res$mu > mu_0 & (is.na(x) | x != 1))/max(sum(single_res$mu > mu_0), 1)
-  })
-  type_II_coverage = sapply(single_res$CIs, function(x) {
-    sum(single_res$mu > mu_0 & (is.na(x[,1]) | x[,1] > single_res$mu | x[,2] < single_res$mu))/max(sum(single_res$mu > mu_0), 1)
-  })
-  
-  CI_length = sapply(single_res$CIs, function(x) {
-    if(nrow(x) > 0) {mean(x[,2] - x[,1], na.rm = TRUE)}
-    else NA
-  })
-  return(list(power = power, CI_length = CI_length,
-              error_FDR = error_FDR, error_FCR = error_FCR,
-              error_FSR = error_FSR, error_FPR = error_FPR,
-              rejected_FNR = rejected_FNR, rejected_FZR = rejected_FZR,
-              true_FNR = true_FNR, true_FZR = true_FZR,
-              type_II_sign = type_II_sign, type_II_coverage = type_II_coverage
-  ))
-}
-
-process_result_regression = function(single_res, beta, scale) {
-  error_FCR = sapply(methods, function(x) {
-    if (length(single_res$selected[[x]]) == 0) {
-      0
-    } else {
-      sum(single_res$CIs[[x]][,1] > single_res$projected[[x]] |
-            single_res$CIs[[x]][,2] < single_res$projected[[x]],
-          na.rm = TRUE)/max(length(single_res$selected[[x]]), 1)
-    }
-  })
-  if (length(single_res$selected[["full"]]) == 0) {
-    FCR_sim = 0
-  } else {
-    FCR_sim = sum(single_res$nCIs[["full"]][,1] > single_res$projected[["sim"]] |
-                    single_res$nCIs[["full"]][,2] < single_res$projected[["sim"]],
-                  na.rm = TRUE)/max(length(single_res$selected[["full"]]), 1)
-  }
-  
-  beta_sqdist = sapply(methods, function(x) {
-    if (length(single_res$selected[[x]]) == 0) {
-      0
-    } else {
-      sqrt(sum((single_res$projected[[x]] - beta[single_res$selected[[x]]]*scale)^2)/
-             length(single_res$selected[[x]]))
-    }
-  })
-  CI_length = sapply(methods, function(x) {
-    if (length(single_res$selected[[x]]) == 0) {
-      NA
-    } else {
-      mean(single_res$CIs[[x]][,2] - single_res$CIs[[x]][,1],na.rm = TRUE)
-    }
-  })
-  CI_length_scaled = sapply(methods, function(x) {
-    if (length(single_res$selected[[x]]) == 0) {
-      NA
-    } else {
-      mean((single_res$CIs[[x]][,2] - single_res$CIs[[x]][,1])/
-             (single_res$nCIs[[x]][,2] - single_res$nCIs[[x]][,1]), na.rm = TRUE)
-    }
-  })
-  power_sign = sapply(methods, function(x) {
-    if (length(single_res$selected[[x]]) == 0) {
-      0
-    } else {
-      sum(single_res$projected[[x]] > 0 & single_res$CIs[[x]][,1] > 0, na.rm = TRUE)/
-        max(sum(single_res$projected[[x]] > 0, na.rm = TRUE), 1)
-    }
-  })
-  FSR = sapply(methods, function(x) {
-    if (length(single_res$selected[[x]]) == 0) {
-      0
-    } else {
-      sum(single_res$projected[[x]] > 0 & single_res$CIs[[x]][,2] < 0, na.rm = TRUE)/
-        max(sum((single_res$CIs[[x]][,1] > 0 | single_res$CIs[[x]][,2] < 0), na.rm = TRUE), 1)
-    }
-  })
-  precision_selected = sapply(methods, function(x) {
-    if (length(single_res$selected[[x]]) == 0) {
-      0
-    } else {
-      sum(scale*beta[single_res$selected[[x]]] > 0)/length(single_res$selected[[x]])
-    }
-  })
-  power_selected = sapply(methods, function(x) {
-    if (length(single_res$selected[[x]]) == 0) {
-      NA
-    } else {
-      sum(scale*beta[single_res$selected[[x]]] > 0)/max(sum(scale*beta[single_res$selected[[x]]] > 0),1)
-    }
-  })
-  ll_ratio = sapply(methods, function(x) {
-    if(is.null(single_res$ll_ratio[[x]])) {
-      NA
-    } else {
-      single_res$ll_ratio[[x]]
-    }
-  })
-  return(list(precision_selected = precision_selected, power_selected = power_selected,
-              power_sign = power_sign,
-              beta_sqdist = beta_sqdist,
-              FSR = FSR, error_FCR = error_FCR, FCR_sim = FCR_sim,
-              ratio_B = mean(single_res$ratio_B), ratio_M = mean(single_res$ratio_M),
-              ratio_fi = mean(single_res$ratio_fi), ll_ratio =ll_ratio,
-              CI_length = CI_length, CI_length_scaled = CI_length_scaled
-  ))
-}
-
-
-
-###########################################################
-#Figure 19: Example Confidence Intervals
-###########################################################
-
-model = "regression_logistic_varyscale"
-load(file = paste(getwd(),"/results2/", model,".Rdata", sep = ""))
-single_res = result[[0.5]][[1]]
-
-lb = single_res$CIs[[x]][,1]; lb[is.na(lb)] = 0
-ub = single_res$CIs[[x]][,2]; ub[is.na(ub)] = 0
-projected_beta = single_res$projected[[x]]
-plot(1:100, beta*scale, ylab = "coefficients", cex = 0.3, xlab = "",
-     ylim=range(c(-0.5, 0.5)))
-points(single_res$selected[[x]], projected_beta, col = "blue", pch = 4)
-arrows(single_res$selected[[x]], lb, single_res$selected[[x]], ub,
-       length=0.05, angle=90, code=3)
-
-ind = as.vector(single_res$CIs[[x]][,1] > projected_beta |
-                  single_res$CIs[[x]][,2] < projected_beta)
-ind[is.na(ind)] = FALSE
-arrows(single_res$selected[[x]][which(ind)], lb[ind],
-       single_res$selected[[x]][which(ind)], ub[ind], 
-       length=0.05, angle=90, code=3, col = "red")
-sum(ind)/length(single_res$selected[[x]])
-###########################################################
-#Figure 20: Simulations varying signal strength
-###########################################################
-
-model = "regression_logistic_varyscale"
-load(file = paste(getwd(),"/results2/", model,".Rdata", sep = ""))
-
-beta = c(1, 0, rep(1,20), rep(0, 100 - 31), rep(2,9))
-beta= c(0,beta)
-methods = c("masking","full","split")
-scale_seq = seq(0, 0.5, length.out = 6)
-post_result = list()
-for (scale in scale_seq) {
-  post_result[[as.character(scale)]] = lapply(result[[as.character(scale)]], function(x)
-    process_result_regression(x, beta = beta, scale = scale))
-}
-
-
-for (scale in scale_seq) {
-  for(iter in 1:length(result[[as.character(scale)]])){
-    CI = result[[as.character(scale)]][[iter]]$CIs$masking_update
-    nCI = result[[as.character(scale)]][[iter]]$nCIs$masking_update
-    CI_length = mean(CI[,2] - CI[,1])
-    CI_length_scaled = mean((CI[,2] - CI[,1])/(nCI[,2] - nCI[,1]))
-    true_beta = beta[result[[as.character(scale)]][[iter]]$selected$masking]*scale
-    
-    FCR = sum((CI[,1] > true_beta) | (CI[,2] < true_beta))/max(length(true_beta),1)
-    FSR = sum((CI[,1] <0 & true_beta > 0) | (CI[,2] > 0 & true_beta < 0))/max(length(which(true_beta != 0)),1)
-    power_sign = sum(true_beta >0  & CI[,1] > 0) / max(length(which(true_beta != 0)),1)
-    
-    post_result[[as.character(scale)]][[iter]]$CI_length = c(post_result[[as.character(scale)]][[iter]]$CI_length,"masking_update" = CI_length)
-    post_result[[as.character(scale)]][[iter]]$CI_length_scaled = c(post_result[[as.character(scale)]][[iter]]$CI_length_scaled,"masking_update" = CI_length_scaled)
-    post_result[[as.character(scale)]][[iter]]$error_FCR  = c(post_result[[as.character(scale)]][[iter]]$error_FCR,"masking_update" = FCR)
-    post_result[[as.character(scale)]][[iter]]$FSR  = c(post_result[[as.character(scale)]][[iter]]$FSR,"masking_update" = FSR)
-    post_result[[as.character(scale)]][[iter]]$power_sign  = c(post_result[[as.character(scale)]][[iter]]$power_sign,"masking_update" = power_sign)
-    
-  }
-}
-
-
-CI_length = sapply(post_result, function(y) {rowMeans(sapply(y, function(x) x$CI_length), na.rm = TRUE)})
-CI_length_scaled = sapply(post_result, function(y) {rowMeans(sapply(y, function(x) x$CI_length_scaled), na.rm = TRUE)})
-FCR = sapply(post_result, function(y) {rowMeans(sapply(y, function(x) x$error_FCR), na.rm = TRUE)})
-power_sign = sapply(post_result, function(y) {rowMeans(sapply(y, function(x) x$power_sign), na.rm = TRUE)})
-FSR = sapply(post_result, function(y) {rowMeans(sapply(y, function(x) x$FSR), na.rm = TRUE)})
-power_selected = sapply(post_result, function(y) {rowMeans(sapply(y, function(x) x$power_selected), na.rm = TRUE)})
-precision_selected = sapply(post_result, function(y) {rowMeans(sapply(y, function(x) x$precision_selected), na.rm = TRUE)})
-
-
-FCR_plot <- melt(t(FCR)) %>%
-  ggplot( aes(x=Var1, y=value, group=Var2, color=Var2)) +
-  geom_line(aes(linetype = Var2, color = Var2), size = 0.8) +
-  geom_point(aes(shape = Var2, color = Var2), size = 2.5) +
-  theme(legend.title = element_blank(),
-        panel.background = element_rect(fill = "white", colour = "black"),
-        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
-        panel.grid.minor = element_line(colour = "grey"),
-        text = element_text(size = 15),
-        legend.position = "none", legend.text = element_text(size = 15)) +
-  xlab("signal") +
-  ylab("FCR") +
-  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
-
-
-CI_plot <- melt(t(CI_length)) %>%
-  ggplot( aes(x=Var1, y=value, group=Var2, color=Var2)) +
-  geom_line(aes(linetype = Var2, color = Var2), size = 0.8) +
-  geom_point(aes(shape = Var2, color = Var2), size = 2.5) +
-  theme(legend.title = element_blank(),
-        panel.background = element_rect(fill = "white", colour = "black"),
-        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
-        panel.grid.minor = element_line(colour = "grey"),
-        text = element_text(size = 15),
-        legend.position = "none", legend.text = element_text(size = 15)) +
-  xlab("signal") +
-  ylab("CI length") +
-  scale_y_continuous(breaks = seq(0, 1.5, 0.3), limits = c(0,1.5)) 
-
-
-FSR_plot <- melt(t(FSR)) %>%
-  ggplot( aes(x=Var1, y=value, group=Var2, color=Var2)) +
-  geom_line(aes(linetype = Var2, color = Var2), size = 0.8) +
-  geom_point(aes(shape = Var2, color = Var2), size = 2.5) +
-  theme(legend.title = element_blank(),
-        panel.background = element_rect(fill = "white", colour = "black"),
-        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
-        panel.grid.minor = element_line(colour = "grey"),
-        text = element_text(size = 15),
-        legend.position = "none", legend.text = element_text(size = 15)) +
-  xlab("signal") +
-  ylab("FSR") +
-  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1))
-
-
-power_sign_plot <- melt(t(power_sign)) %>%
-  ggplot( aes(x=Var1, y=value, group=Var2, color=Var2)) +
-  geom_line(aes(linetype = Var2, color = Var2), size = 0.8) +
-  geom_point(aes(shape = Var2, color = Var2), size = 2.5) +
-  theme(legend.title = element_blank(),
-        panel.background = element_rect(fill = "white", colour = "black"),
-        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
-        panel.grid.minor = element_line(colour = "grey"),
-        text = element_text(size = 15),
-        legend.position = "none", legend.text = element_text(size = 15)) +
-  xlab("signal") +
-  ylab("Power Sign") +
-  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1))
-
-
-power_selected_plot <- melt(t(power_selected)) %>%
-  ggplot( aes(x=Var1, y=value, group=Var2, color=Var2)) +
-  geom_line(aes(linetype = Var2, color = Var2), size = 0.8) +
-  geom_point(aes(shape = Var2, color = Var2), size = 2.5) +
-  theme(legend.title = element_blank(),
-        panel.background = element_rect(fill = "white", colour = "black"),
-        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
-        panel.grid.minor = element_line(colour = "grey"),
-        text = element_text(size = 15),
-        legend.position = "none", legend.text = element_text(size = 15)) +
-  xlab("signal") +
-  ylab("Power Selected") +
-  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1))
-
-
-
-precision_selected_plot <- melt(t(precision_selected)) %>%
-  ggplot( aes(x=Var1, y=value, group=Var2, color=Var2)) +
-  geom_line(aes(linetype = Var2, color = Var2), size = 0.8) +
-  geom_point(aes(shape = Var2, color = Var2), size = 2.5) +
-  theme(legend.title = element_blank(),
-        panel.background = element_rect(fill = "white", colour = "black"),
-        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
-        panel.grid.minor = element_line(colour = "grey"),
-        text = element_text(size = 15),
-        legend.position = "none", legend.text = element_text(size = 15)) +
-  xlab("signal") +
-  ylab("Precision Selected") +
-  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1))
-
-
-
-###########################################################
-#Figure 21: Simulations varying blurring parameter
-###########################################################
-
-model = "regression_logistic_varyprob"
-load(file = paste(dirname, model,".Rdata", sep = ""))
-
-beta = c(1, 0, rep(1,20), rep(0, 100 - 31), rep(2,9))
-beta= c(0,beta)
-methods = c("masking","full","split")
-prob_seq = seq(0.05, 0.45, 0.05)
-scale = 0.5
-post_result = list()
-
-for (prob in prob_seq) {
-  post_result[[as.character(prob)]] = lapply(result[[as.character(prob)]], function(x)
-    process_result_regression(x, beta = beta, scale = 0.5))
-}
-
-for (prob in prob_seq) {
-  for(iter in 1:length(result[[as.character(prob)]])){
-    CI = result[[as.character(prob)]][[iter]]$CIs$masking_update
-    nCI = result[[as.character(prob)]][[iter]]$nCIs$masking_update
-    CI_length = mean(CI[,2] - CI[,1])
-    CI_length_probd = mean((CI[,2] - CI[,1])/(nCI[,2] - nCI[,1]))
-    true_beta = beta[result[[as.character(prob)]][[iter]]$selected$masking]*scale
-    
-    FCR = sum((CI[,1] > true_beta) | (CI[,2] < true_beta))/max(length(true_beta),1)
-    FSR = sum((CI[,1] <0 & true_beta > 0) | (CI[,2] > 0 & true_beta < 0))/max(length(which(true_beta != 0)),1)
-    power_sign = sum(true_beta >0  & CI[,1] > 0) / max(length(which(true_beta != 0)),1)
-    
-    post_result[[as.character(prob)]][[iter]]$CI_length = c(post_result[[as.character(prob)]][[iter]]$CI_length,"masking_update" = CI_length)
-    post_result[[as.character(prob)]][[iter]]$CI_length_probd = c(post_result[[as.character(prob)]][[iter]]$CI_length_probd,"masking_update" = CI_length_probd)
-    post_result[[as.character(prob)]][[iter]]$error_FCR  = c(post_result[[as.character(prob)]][[iter]]$error_FCR,"masking_update" = FCR)
-    post_result[[as.character(prob)]][[iter]]$FSR  = c(post_result[[as.character(prob)]][[iter]]$FSR,"masking_update" = FSR)
-    post_result[[as.character(prob)]][[iter]]$power_sign  = c(post_result[[as.character(prob)]][[iter]]$power_sign,"masking_update" = power_sign)
-    
-  }
-}
-
-CI_length = sapply(post_result, function(y) {rowMeans(sapply(y, function(x) x$CI_length), na.rm = TRUE)})
-CI_length_scaled = sapply(post_result, function(y) {rowMeans(sapply(y, function(x) x$CI_length_scaled), na.rm = TRUE)})
-FCR = sapply(post_result, function(y) {rowMeans(sapply(y, function(x) x$error_FCR), na.rm = TRUE)})
-power_sign = sapply(post_result, function(y) {rowMeans(sapply(y, function(x) x$power_sign), na.rm = TRUE)})
-FSR = sapply(post_result, function(y) {rowMeans(sapply(y, function(x) x$FSR), na.rm = TRUE)})
-power_selected = sapply(post_result, function(y) {rowMeans(sapply(y, function(x) x$power_selected), na.rm = TRUE)})
-precision_selected = sapply(post_result, function(y) {rowMeans(sapply(y, function(x) x$precision_selected), na.rm = TRUE)})
-
-
-FCR_plot <- melt(t(FCR)) %>%
-  ggplot( aes(x=Var1, y=value, group=Var2, color=Var2)) +
-  geom_line(aes(linetype = Var2, color = Var2), size = 0.8) +
-  geom_point(aes(shape = Var2, color = Var2), size = 2.5) +
-  theme(legend.title = element_blank(),
-        panel.background = element_rect(fill = "white", colour = "black"),
-        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
-        panel.grid.minor = element_line(colour = "grey"),
-        text = element_text(size = 15),
-        legend.position = "none", legend.text = element_text(size = 15)) +
-  xlab("Flip probability") +
-  ylab("FCR") +
-  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
-
-
-CI_plot <- melt(t(CI_length)) %>%
-  ggplot( aes(x=Var1, y=value, group=Var2, color=Var2)) +
-  geom_line(aes(linetype = Var2, color = Var2), size = 0.8) +
-  geom_point(aes(shape = Var2, color = Var2), size = 2.5) +
-  theme(legend.title = element_blank(),
-        panel.background = element_rect(fill = "white", colour = "black"),
-        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
-        panel.grid.minor = element_line(colour = "grey"),
-        text = element_text(size = 15),
-        legend.position = "none", legend.text = element_text(size = 15)) +
-  xlab("Flip probability") +
-  ylab("CI length") +
-  scale_y_continuous(breaks = seq(0, 1.5, 0.3), limits = c(0,1.5)) 
-
-
-FSR_plot <- melt(t(FSR)) %>%
-  ggplot( aes(x=Var1, y=value, group=Var2, color=Var2)) +
-  geom_line(aes(linetype = Var2, color = Var2), size = 0.8) +
-  geom_point(aes(shape = Var2, color = Var2), size = 2.5) +sapply(result[[as.character(influ)]], function(x) get_metrics_linear(x,"masking",beta))
-  theme(legend.title = element_blank(),
-        panel.background = element_rect(fill = "white", colour = "black"),
-        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
-        panel.grid.minor = element_line(colour = "grey"),
-        text = element_text(size = 15),
-        legend.position = "none", legend.text = element_text(size = 15)) +
-  xlab("Flip probability") +
-  ylab("FSR") +
-  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1))
-
-
-power_sign_plot <- melt(t(power_sign)) %>%
-  ggplot( aes(x=Var1, y=value, group=Var2, color=Var2)) +
-  geom_line(aes(linetype = Var2, color = Var2), size = 0.8) +
-  geom_point(aes(shape = Var2, color = Var2), size = 2.5) +
-  theme(legend.title = element_blank(),
-        panel.background = element_rect(fill = "white", colour = "black"),
-        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
-        panel.grid.minor = element_line(colour = "grey"),
-        text = element_text(size = 15),
-        legend.position = "none", legend.text = element_text(size = 15)) +
-  xlab("signal") +
-  ylab("Power Sign") +
-  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1))
-
-
-power_selected_plot <- melt(t(power_selected)) %>%
-  ggplot( aes(x=Var1, y=value, group=Var2, color=Var2)) +
-  geom_line(aes(linetype = Var2, color = Var2), size = 0.8) +
-  geom_point(aes(shape = Var2, color = Var2), size = 2.5) +
-  theme(legend.title = element_blank(),
-        panel.background = element_rect(fill = "white", colour = "black"),
-        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
-        panel.grid.minor = element_line(colour = "grey"),
-        text = element_text(size = 15),
-        legend.position = "none", legend.text = element_text(size = 15)) +
-  xlab("signal") +
-  ylab("Power Selected") +
-  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1))
-
-
-
-precision_selected_plot <- melt(t(precision_selected)) %>%
-  ggplot( aes(x=Var1, y=value, group=Var2, color=Var2)) +
-  geom_line(aes(linetype = Var2, color = Var2), size = 0.8) +
-  geom_point(aes(shape = Var2, color = Var2), size = 2.5) +
-  theme(legend.title = element_blank(),
-        panel.background = element_rect(fill = "white", colour = "black"),
-        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
-        panel.grid.minor = element_line(colour = "grey"),
-        text = element_text(size = 15),
-        legend.position = "none", legend.text = element_text(size = 15)) +
-  xlab("signal") +
-  ylab("Precision Selected") +
-  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1))
 

@@ -151,6 +151,8 @@ if(0){
 #######################################################################################################################
 
 
+
+
 scale_seq = seq(0, 0.5, length.out = 6)
 p = 100
 result = list()
@@ -190,6 +192,23 @@ for (prob in prob_seq) {
 }
 save(result, file=paste("results/regression_logistic_varyprob.Rdata",sep = ""))
 
+
+influ_seq = seq(2, 6, length.out = 5)
+result=list()
+for (influ in influ_seq) { 
+  para_vary = list(list(name = "scale", value = 1),
+                   list(name = "R", value = 5),
+                   list(name = "n", value = 15),
+                   list(name = "p", value = 20),
+                   list(name = "prob",value = 0.2),
+                   list(name = "beta", 
+                        value = c(1, rep(0,15),1,-1,1,0)),
+                   list(name="add_influential",value=c(influ)))
+  
+  result[[as.character(influ)]] = experiment_logistic(para_vary)
+}
+
+save(result, file=paste("results/regression_logistic_influential.Rdata",sep = ""))
 
 
 #######################################################################################################################

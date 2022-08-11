@@ -262,8 +262,13 @@ experiment_logistic = function(para_vary){
   wrapper_func = function(i){
     print(i)
     CIs = list(); selected_list = list(); projected = list();
-    
-    dat = generate_logistic(n = n, p = p, beta = beta*scale)
+    if(exists("add_influential")){
+      dat = generate_logistic(n = n, p = p, beta = beta*scale,add_influential=add_influential)
+      n=n+length(add_influential)
+    }
+    else {
+      dat = generate_logistic(n = n, p = p, beta = beta*scale) 
+    }
     X = cbind(rep(1, n), dat$X)
     beta = c(0, beta)
     if ("masking" %in% methods) {
