@@ -24,8 +24,14 @@ agg_stats <- function(df,alpha.FCR) {
     if(type == "poisson"){
       m <- sum(df$Y[x])
       true_mean <- sum(df$mu[x])
-      low = qchisq(alpha.2/2, 2*m)/2
-      up = qchisq(1-alpha.2/2, 2*(m+1))/2
+      
+      #BY-corrected
+      #low = qchisq(alpha.2/2, 2*m)/2
+      #up = qchisq(1-alpha.2/2, 2*(m+1))/2
+      
+      #uncorrected
+      low = qchisq(alpha.FCR/2, 2*m)/2
+      up = qchisq(1-alpha.FCR/2, 2*(m+1))/2
       
       cov <- true_mean <= up & (true_mean >= low)
       if(nrej > 0 ){
@@ -38,8 +44,10 @@ agg_stats <- function(df,alpha.FCR) {
     }
     else{
       sd = 1
-      up <- df$Y[x] + qnorm(1-alpha.2/2,mean=0,sd=sd)
-      low <- df$Y[x] - qnorm(1-alpha.2/2,mean=0,sd=sd)
+      #up <- df$Y[x] + qnorm(1-alpha.2/2,mean=0,sd=sd)
+      #low <- df$Y[x] - qnorm(1-alpha.2/2,mean=0,sd=sd)
+      up <- df$Y[x] + qnorm(1-alpha.FCR/2,mean=0,sd=sd)
+      low <- df$Y[x] - qnorm(1-alpha.FCR/2,mean=0,sd=sd)
       cov <- df$mu[x]  <= up & (df$mu[x] >= low)
       ret<- c(mean(df$mu[x]),mean(df$Y[x]),sum(cov),length(cov),mean(up-low))
     }
@@ -69,8 +77,10 @@ agg_stats <- function(df,alpha.FCR) {
                          }
                          else{
                            sd = 1
-                           up <- df$Y[tmp] + qnorm(1-alpha.2/2,mean=0,sd=sd)
-                           low <- df$Y[tmp] - qnorm(1-alpha.2/2,mean=0,sd=sd)
+                           #up <- df$Y[tmp] + qnorm(1-alpha.2/2,mean=0,sd=sd)
+                           #low <- df$Y[tmp] - qnorm(1-alpha.2/2,mean=0,sd=sd)
+                           up <- df$Y[tmp] + qnorm(1-alpha.FCR/2,mean=0,sd=sd)
+                           low <- df$Y[tmp] - qnorm(1-alpha.FCR/2,mean=0,sd=sd)
                            cov <- df$mu[tmp] <= up & (df$mu[tmp] >= low)
                            
                            ret<- c(mean(df$mu[tmp]),mean(df$Y[tmp]),sum(cov),length(cov),mean(up-low))
@@ -85,8 +95,11 @@ agg_stats <- function(df,alpha.FCR) {
                           if(type == "poisson"){
                             m <- sum(df$Y[x])
                             true_mean <- sum(df$mu[x])
-                            low = qchisq(alpha.2/2, 2*m)/2
-                            up = qchisq(1-alpha.2/2, 2*(m+1))/2
+                            #low = qchisq(alpha.2/2, 2*m)/2
+                            #up = qchisq(1-alpha.2/2, 2*(m+1))/2
+                            
+                            low = qchisq(alpha.FCR/2, 2*m)/2
+                            up = qchisq(1-alpha.FCR/2, 2*(m+1))/2
                             
                             cov <- true_mean <= up & (true_mean >= low)
                             if(nrej > 0 ){
@@ -99,12 +112,14 @@ agg_stats <- function(df,alpha.FCR) {
                           }
                           else{
                             sd = 1
-                            up <- df$Y[x] + qnorm(1-alpha.2/2,mean=0,sd=sd)
-                            low <- df$Y[x] - qnorm(1-alpha.2/2,mean=0,sd=sd)
+                            #up <- df$Y[x] + qnorm(1-alpha.2/2,mean=0,sd=sd)
+                            #low <- df$Y[x] - qnorm(1-alpha.2/2,mean=0,sd=sd)
+                            up <- df$Y[x] + qnorm(1-alpha.FCR/2,mean=0,sd=sd)
+                            low <- df$Y[x] - qnorm(1-alpha.FCR/2,mean=0,sd=sd)
                             cov <- df$mu[x] <= up & (df$mu[x] >= low)
                             ret<- c(mean(df$mu[x]),mean(df$Y[x]),sum(cov),length(cov),mean(up-low))
                           }
-
+                          
                           return(ret)
                         })
   
@@ -139,7 +154,7 @@ agg_stats <- function(df,alpha.FCR) {
       ret <- c(true_mean,m,sum(cov),length(cov),mean(up-low))
       
     }
-
+    
     return(ret)
   })
   
@@ -351,7 +366,7 @@ for(i in 1:9/10) {
 }
 
 ds <- ds[ds$type == "poisson",]
-p1 <- ggplot(ds[ds$Metric == "FDP" & ds$TargetLevel==0.1,],
+p1 <- ggplot(ds[ds$Metric == "FDP" & ds$TargetLevel==0.2,],
              aes(x = tau, y = Value, color = Procedure,shape=Procedure,linetype=Splitting)) +
   geom_line(aes(color = Procedure,linetype=Splitting), size = 0.8) +
   geom_point(aes(shape = Procedure, color = Procedure), size = 1.5) +
@@ -359,7 +374,7 @@ p1 <- ggplot(ds[ds$Metric == "FDP" & ds$TargetLevel==0.1,],
   theme(legend.title = element_blank(),
         panel.background = element_rect(fill = "white", colour = "black"),
         panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
-        panel.grid.minor = element_line(colour = "grey"),legend.position="bottom",
+        panel.grid.minor = element_line(colour = "grey"),legend.position="none",
         text = element_text(size = 15),legend.text = element_text(size = 15)) +
   scale_linetype_manual(NULL,values = c('dashed','solid')) + 
   xlab(TeX("$\\tau$"))+
@@ -409,13 +424,92 @@ p4 <- ggplot(ds[ds$Metric == "CI Length" & ds$TargetLevel==0.2,],
   scale_linetype_manual(NULL,values = c('dashed','solid'))+
   ylab("CI Length")
 
+p1
+ggsave("figures/interactive_varytau_fdr_poisson.pdf")
+p2
+ggsave("figures/interactive_varytau_power_poisson.pdf")
+p3
+ggsave("figures/interactive_varytau_fcr_poisson.pdf")
+p4
+ggsave("figures/interactive_varytau_CI_poisson.pdf")
 
-grid.arrange(p1,p2,nrow=1,ncol=2)
-ggsave("figures/interactive_varytau_selection_poisson.pdf")
 
 
-grid.arrange(p3,p4,nrow=1,ncol=2)
-ggsave("figures/interactive_varytau_inference_poisson.pdf")
+t1 <- agg[agg$Splitting=="Full" & agg$tau == 0.1,]
+ds <- agg[agg$Splitting=="Blurred",]
+for(i in 1:9/10) {
+  t_temp <- t1
+  t_temp$tau = i
+  ds = rbind(ds,t_temp)
+}
+
+ds <- ds[ds$type == "normal",]
+p1 <- ggplot(ds[ds$Metric == "FDP" & ds$TargetLevel==0.2,],
+             aes(x = tau, y = Value, color = Procedure,shape=Procedure,linetype=Splitting)) +
+  geom_line(aes(color = Procedure,linetype=Splitting), size = 0.8) +
+  geom_point(aes(shape = Procedure, color = Procedure), size = 1.5) +
+  geom_hline(yintercept=0.2,linetype="dashed",size=1) +
+  theme(legend.title = element_blank(),
+        panel.background = element_rect(fill = "white", colour = "black"),
+        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
+        panel.grid.minor = element_line(colour = "grey"),legend.position="none",
+        text = element_text(size = 15),legend.text = element_text(size = 15)) +
+  scale_linetype_manual(NULL,values = c('dashed','solid')) + 
+  xlab(TeX("$\\tau$"))+
+  ylab("False discovery rate")
+
+
+p2 <- ggplot(ds[ds$Metric == "Power" & ds$TargetLevel==0.2,],
+             aes(x = tau, y = Value, fill = Procedure,linetype=Splitting)) +
+  geom_line(aes(color = Procedure,linetype=Splitting), size = 0.8) +
+  geom_point(aes(shape = Procedure, color = Procedure), size = 1.5) +
+  theme(legend.title = element_blank(),
+        panel.background = element_rect(fill = "white", colour = "black"),
+        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
+        panel.grid.minor = element_line(colour = "grey"),
+        text = element_text(size = 15),
+        legend.position = "none", legend.text = element_text(size = 15)) +
+  scale_linetype_manual(NULL,values = c('dashed','solid')) + 
+  xlab(TeX("$\\tau$"))+
+  ylab("Power")
+
+
+p3 <- ggplot(ds[ds$Metric == "FCR" & ds$TargetLevel==0.2,],
+             aes(x = tau, y = Value, fill = Procedure,linetype=Splitting)) +
+  geom_line(aes(color = Procedure,linetype=Splitting), size = 0.8) +
+  geom_point(aes(shape = Procedure, color = Procedure), size = 1.5) +
+  geom_hline(yintercept=0.2,linetype="dashed",size=1) +
+  theme(legend.title = element_blank(),
+        panel.background = element_rect(fill = "white", colour = "black"),
+        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
+        panel.grid.minor = element_line(colour = "grey"),
+        text = element_text(size = 15), legend.position = "none", legend.text = element_text(size = 15)) +
+  xlab(TeX("$\\tau$")) +
+  ylab("False coverage rate") +
+  scale_linetype_manual(NULL,values = c('dashed','solid'))
+
+p4 <- ggplot(ds[ds$Metric == "CI Length" & ds$TargetLevel==0.2,],
+             aes(x = tau, y = Value, fill = Procedure,linetype=Splitting)) +
+  geom_line(aes(color = Procedure,linetype=Splitting), size = 0.8) +
+  geom_point(aes(shape = Procedure, color = Procedure), size = 1.5) +
+  theme(legend.title = element_blank(),
+        panel.background = element_rect(fill = "white", colour = "black"),
+        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
+        panel.grid.minor = element_line(colour = "grey"),
+        text = element_text(size = 15),
+        legend.position = "none", legend.text = element_text(size = 15)) +
+  xlab(TeX("$\\tau$")) +
+  scale_linetype_manual(NULL,values = c('dashed','solid'))+
+  ylab("CI Length")
+
+p1
+ggsave("figures/interactive_varytau_fdr_normal.pdf")
+p2
+ggsave("figures/interactive_varytau_power_normal.pdf")
+p3
+ggsave("figures/interactive_varytau_fcr_normal.pdf")
+p4
+ggsave("figures/interactive_varytau_CI_normal.pdf")
 
 
 
@@ -426,7 +520,7 @@ x <- t$x
 source('STAR_code/STAR_convex.R')
 
 pdf(file="figures/convex_example_true.pdf")
-plot.rej.convex(x, ifelse(t$mu == 2,1,0), cex = 0.5,col.bg = "#A9A9A9", col.fg = "#000000",main = "", xaxt = "n", yaxt = "n")
+plot.rej.convex(x, ifelse(t$mu == 2,1,0), cex = 0.5,col.bg = "#A9A9A9", col.fg = "#000000",main = "True Region", xaxt = "n", yaxt = "n")
 dev.off()
 
 pdf(file="figures/convex_example_run.pdf",width=7,height=5)
@@ -443,6 +537,3 @@ plot.rej.convex(x, ifelse(t$pvals_mask < alpha,2,0), cex = 0.5,col.bg = "#A9A9A9
 plot.rej.convex(x, ifelse(t$pvals_mask < t$AdaPT.mask.object$s[,10],2,0), cex = 0.5,col.bg = "#A9A9A9", col.fg = "#000000",main = "AdaPT (Fission)", xaxt = "n", yaxt = "n")
 plot.rej.convex(x, ifelse(t$STAR.mask.object$mask[,10],2,0), cex = 0.5,col.bg = "#A9A9A9", col.fg = "#000000",main = "STAR (Fission)", xaxt = "n", yaxt = "n")
 dev.off()
-
-
-
