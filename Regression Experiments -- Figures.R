@@ -41,7 +41,7 @@ get_metrics_linear <- function(single_res,x,beta) {
 
 
 
-get_graphs_linear <- function(wd,model,label,vary_seq,xlab){
+get_graphs_linear <- function(wd,model,label,vary_seq,xlab,beta){
   load(file = paste(wd, model,".Rdata", sep = ""))
   for(par in vary_seq){
     agg_masking <- cbind("masking",par,data.frame(t(sapply(result[[as.character(par)]], function(x) get_metrics_linear(x,"masking",beta)))))
@@ -70,7 +70,7 @@ get_graphs_linear <- function(wd,model,label,vary_seq,xlab){
           panel.background = element_rect(fill = "white", colour = "black"),
           panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
           panel.grid.minor = element_line(colour = "grey"),
-          text = element_text(size = 25),
+          text = element_text(size = 15),
           legend.position = "none", legend.text = element_text(size = 15)) +
     xlab(label) +
     ylab("FCR") +
@@ -88,10 +88,10 @@ get_graphs_linear <- function(wd,model,label,vary_seq,xlab){
           panel.background = element_rect(fill = "white", colour = "black"),
           panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
           panel.grid.minor = element_line(colour = "grey"),
-          text = element_text(size = 25),
+          text = element_text(size = 15),
           legend.position = "none", legend.text = element_text(size = 15)) +
     xlab(label) +
-    ylab("CI Length (given nonzero selection)") 
+    ylab("CI Length (given selection)") 
   
   
   df = aggregate(res_agg$FSR~ res_agg$scale + res_agg$type, FUN = mean)
@@ -104,7 +104,7 @@ get_graphs_linear <- function(wd,model,label,vary_seq,xlab){
           panel.background = element_rect(fill = "white", colour = "black"),
           panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
           panel.grid.minor = element_line(colour = "grey"),
-          text = element_text(size = 25),
+          text = element_text(size = 15),
           legend.position = "none", legend.text = element_text(size = 15)) +
     xlab(label) +
     ylab("FSR") +
@@ -122,7 +122,7 @@ get_graphs_linear <- function(wd,model,label,vary_seq,xlab){
           panel.background = element_rect(fill = "white", colour = "black"),
           panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
           panel.grid.minor = element_line(colour = "grey"),
-          text = element_text(size = 25),
+          text = element_text(size = 15),
           legend.position = "none", legend.text = element_text(size = 15)) +
     xlab(label) +
     ylab("Power Sign") +
@@ -140,7 +140,7 @@ get_graphs_linear <- function(wd,model,label,vary_seq,xlab){
           panel.background = element_rect(fill = "white", colour = "black"),
           panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
           panel.grid.minor = element_line(colour = "grey"),
-          text = element_text(size = 25),
+          text = element_text(size = 15),
           legend.position = "none", legend.text = element_text(size = 15)) +
     xlab(label) +
     ylab("Power Selected") +
@@ -157,7 +157,7 @@ get_graphs_linear <- function(wd,model,label,vary_seq,xlab){
           panel.background = element_rect(fill = "white", colour = "black"),
           panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
           panel.grid.minor = element_line(colour = "grey"),
-          text = element_text(size = 25),
+          text = element_text(size = 15),
           legend.position = "none", legend.text = element_text(size = 15)) +
     xlab(label) +
     ylab("Precision Selected") +
@@ -263,7 +263,7 @@ get_graphs <- function(wd,model,label,vary_seq,type,xlab){
           text = element_text(size = 15),
           legend.position = "none", legend.text = element_text(size = 15)) +
     xlab(xlab) +
-    ylab("CI Length (given nonzero selection)") 
+    ylab("CI Length (given selection)") 
   
   df = aggregate(res_agg$FSR~ res_agg[,2] + res_agg$type, FUN = mean)
   colnames(df) <-c("signal","type","FSR")
@@ -348,11 +348,10 @@ get_graphs <- function(wd,model,label,vary_seq,type,xlab){
               precision_selected=precision_selected_plot))
 }
 
-
-
-get_graphs_linear(wd,"regression_linear_influential","scale",seq(2, 6, length.out = 5),"Leverage Parameter")
-get_graphs_linear(wd,"regression_linear_independent","scale",seq(0, 0.2, length.out = 5),"Scale")
-get_graphs_linear(wd,"regression_linear_dependent","rho",seq(-0.5, 0.5, length.out = 5),"Rho")
+get_graphs_linear(wd,"regression_linear_influential","scale",seq(2, 6, length.out = 5),"Leverage Parameter",beta = c(1, rep(0,15),1,-1,1,0))
+p=100
+get_graphs_linear(wd,"regression_linear_independent","scale",seq(0, 0.2, length.out = 5),"Scale",beta = c(1, 0, rep(1,20), rep(0, p - 31), rep(-1,9)))
+get_graphs_linear(wd,"regression_linear_dependent","rho",seq(-0.5, 0.5, length.out = 5),"Rho",beta= c(1, 0, rep(1,20), rep(0, p - 31), rep(-1,9)))
 get_graphs(wd,"regression_poisson_influential","scale",vary_seq = seq(2, 6, length.out = 5),type='fahrmeir',xlab="Leverage Parameter")
 get_graphs(wd,"regression_poisson_influential","scale",vary_seq = seq(2, 6, length.out = 5),type='sandwich',xlab="Leverage Parameter")
 get_graphs(wd,"regression_poisson_varyscale","scale",vary_seq = seq(0, 0.5, length.out = 5),type='fahrmeir',xlab="Scale")
@@ -363,6 +362,9 @@ get_graphs(wd,"regression_logistic_varyscale","scale",vary_seq = seq(0, 0.5, len
 get_graphs(wd,"regression_logistic_varyscale","scale",vary_seq = seq(0, 0.5, length.out = 6),type='sandwich',xlab="Scale")
 get_graphs(wd,"regression_logistic_varyprob","prob",vary_seq = seq(0.05, 0.45, 0.05),type='fahrmeir',xlab="Masking Probability")
 get_graphs(wd,"regression_logistic_varyprob","prob",vary_seq = seq(0.05, 0.45, 0.05),type='sandwich',xlab="Masking Probability")
+
+
+
 
 
 ################################################################################################################################

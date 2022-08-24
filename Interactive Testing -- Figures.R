@@ -35,7 +35,7 @@ agg_stats <- function(df,alpha.FCR) {
       
       cov <- true_mean <= up & (true_mean >= low)
       if(nrej > 0 ){
-        CI_length = (up - low)/nrej
+        CI_length = mean((up-low)/nrej)
       }
       else{
         CI_length = NA
@@ -68,7 +68,7 @@ agg_stats <- function(df,alpha.FCR) {
                            
                            cov <- true_mean <= up & (true_mean >= low)
                            if(nrej > 0 ){
-                             CI_length = (up - low)/nrej
+                             CI_length = mean((up-low)/nrej)
                            }
                            else{
                              CI_length = NA
@@ -103,7 +103,7 @@ agg_stats <- function(df,alpha.FCR) {
                             
                             cov <- true_mean <= up & (true_mean >= low)
                             if(nrej > 0 ){
-                              CI_length = (up - low)/nrej
+                              CI_length = mean((up - low)/ nrej)
                             }
                             else{
                               CI_length = NA
@@ -137,7 +137,7 @@ agg_stats <- function(df,alpha.FCR) {
       
       cov <- true_mean <= up & (true_mean >= low)
       if(nrej > 0 ){
-        CI_length = (up - low)/nrej
+        CI_length= mean((up - low)/ (nrej*(1-tau)))
       }
       else{
         CI_length = NA
@@ -170,7 +170,7 @@ agg_stats <- function(df,alpha.FCR) {
       
       cov <- true_mean <= up & (true_mean >= low)
       if(nrej > 0 ){
-        CI_length = (up - low)/nrej
+        CI_length= mean((up - low)/ (nrej*(1-tau)))
       }
       else{
         CI_length = NA
@@ -199,7 +199,7 @@ agg_stats <- function(df,alpha.FCR) {
       
       cov <- true_mean <= up & (true_mean >= low)
       if(nrej > 0 ){
-        CI_length = (up - low)/nrej
+        CI_length= mean((up - low)/ (nrej*(1-tau)))
       }
       else{
         CI_length = NA
@@ -236,7 +236,7 @@ get_summary <-function(filename,alpha.list,mu,tau) {
   STAR.full.FDP <- colMeans(do.call(rbind.data.frame, lapply(results,function(x) x$STAR.result.full$FDP)))
   df_FDP <- cbind(BH.mask.FDP,AdaPT.mask.FDP,STAR.mask.FDP,BH.full.FDP,AdaPT.full.FDP,STAR.full.FDP)
   rownames(df_FDP) <- alpha.list
-  colnames(df_FDP) <- c('BH Blurred','AdaPT Blurred','STAR Blurred','BH Full','AdaPT Full','STAR Full')
+  colnames(df_FDP) <- c('BH Fission','AdaPT Fission','STAR Fission','BH Full','AdaPT Full','STAR Full')
   
   df_FDP <- melt(df_FDP)
   df_FDP<- cbind(df_FDP,do.call(rbind,strsplit(as.character(df_FDP$Var2),split=" ")))
@@ -250,7 +250,7 @@ get_summary <-function(filename,alpha.list,mu,tau) {
   STAR.full.power <- colMeans(do.call(rbind.data.frame, lapply(results,function(x) x$STAR.result.full$power)))
   df_power <- cbind(BH.mask.power,AdaPT.mask.power,STAR.mask.power,BH.full.power,AdaPT.full.power,STAR.full.power)
   rownames(df_power) <- alpha.list
-  colnames(df_power) <- c('BH Blurred','AdaPT Blurred','STAR Blurred','BH Full','AdaPT Full','STAR Full')
+  colnames(df_power) <- c('BH Fission','AdaPT Fission','STAR Fission','BH Full','AdaPT Full','STAR Full')
   
   
   df_power <- melt(df_power)
@@ -275,7 +275,7 @@ get_summary <-function(filename,alpha.list,mu,tau) {
   STAR.full.CI <- colMeans(do.call(rbind.data.frame, lapply(agg_results,function(x) x$STAR_full_CI[5,])),na.rm=TRUE)
   df_CI_length <- cbind(BH.mask.CI,AdaPT.mask.CI,STAR.mask.CI,BH.full.CI,AdaPT.full.CI,STAR.full.CI)
   rownames(df_CI_length) <- alpha.list
-  colnames(df_CI_length) <- c('BH Blurred','AdaPT Blurred','STAR Blurred','BH Full','AdaPT Full','STAR Full')
+  colnames(df_CI_length) <- c('BH Fission','AdaPT Fission','STAR Fission','BH Full','AdaPT Full','STAR Full')
   
   
   df_CI_length <- melt(df_CI_length)
@@ -289,7 +289,7 @@ get_summary <-function(filename,alpha.list,mu,tau) {
   STAR.full.MSE <- colMeans(do.call(rbind.data.frame, lapply(agg_results,function(x) (x$STAR_full_CI[1,] -x$STAR_full_CI[2,])**2 )),na.rm=TRUE)
   df_MSE <- cbind(BH.mask.MSE,AdaPT.mask.MSE,STAR.mask.MSE,BH.full.MSE,AdaPT.full.MSE,STAR.full.MSE)
   rownames(df_MSE) <- alpha.list
-  colnames(df_MSE) <- c('BH Blurred','AdaPT Blurred','STAR Blurred','BH Full','AdaPT Full','STAR Full')
+  colnames(df_MSE) <- c('BH Fission','AdaPT Fission','STAR Fission','BH Full','AdaPT Full','STAR Full')
   
   df_MSE <- melt(df_MSE)
   df_MSE<- cbind(df_MSE,do.call(rbind,strsplit(as.character(df_MSE$Var2),split=" ")))
@@ -303,7 +303,7 @@ get_summary <-function(filename,alpha.list,mu,tau) {
   STAR.full.num_in <- colSums(do.call(rbind.data.frame, lapply(agg_results,function(x) x$STAR_full_CI[3,])),na.rm=TRUE)
   df_num_in <- cbind(BH.mask.num_in,AdaPT.mask.num_in,STAR.mask.num_in,BH.full.num_in,AdaPT.full.num_in,STAR.full.num_in)
   rownames(df_num_in) <- alpha.list
-  colnames(df_num_in) <- c('BH Blurred','AdaPT Blurred','STAR Blurred','BH Full','AdaPT Full','STAR Full')
+  colnames(df_num_in) <- c('BH Fission','AdaPT Fission','STAR Fission','BH Full','AdaPT Full','STAR Full')
   
   
   BH.mask.num <- colSums(do.call(rbind.data.frame, lapply(agg_results,function(x) !is.na(x$BH_mask_CI[3,])*x$BH_mask_CI[4,])),na.rm=TRUE)
@@ -314,12 +314,12 @@ get_summary <-function(filename,alpha.list,mu,tau) {
   STAR.full.num <- colSums(do.call(rbind.data.frame, lapply(agg_results,function(x) (!is.na(x$STAR_full_CI[3,])*1)*x$STAR_full_CI[4,])),na.rm=TRUE)
   df_num <-cbind(BH.mask.num,AdaPT.mask.num,STAR.mask.num,BH.full.num,AdaPT.full.num,STAR.full.num)
   rownames(df_num) <- alpha.list
-  colnames(df_num) <- c('BH Blurred','AdaPT Blurred','STAR Blurred','BH Full','AdaPT Full','STAR Full')
+  colnames(df_num) <- c('BH Fission','AdaPT Fission','STAR Fission','BH Full','AdaPT Full','STAR Full')
   
   
   df_FCR <- 1- df_num_in / df_num
   rownames(df_FCR) <- alpha.list
-  colnames(df_FCR) <- c('BH Blurred','AdaPT Blurred','STAR Blurred','BH Full','AdaPT Full','STAR Full')
+  colnames(df_FCR) <- c('BH Fission','AdaPT Fission','STAR Fission','BH Full','AdaPT Full','STAR Full')
   
   df_FCR <- melt(df_FCR)
   df_FCR<- cbind(df_FCR,do.call(rbind,strsplit(as.character(df_FCR$Var2),split=" ")))
@@ -358,7 +358,7 @@ for(i in 1:length(files)){
 
 
 t1 <- agg[agg$Splitting=="Full" & agg$tau == 0.1,]
-ds <- agg[agg$Splitting=="Blurred",]
+ds <- agg[agg$Splitting=="Fission",]
 for(i in 1:9/10) {
   t_temp <- t1
   t_temp$tau = i
@@ -378,7 +378,7 @@ p1 <- ggplot(ds[ds$Metric == "FDP" & ds$TargetLevel==0.2,],
         text = element_text(size = 15),legend.text = element_text(size = 15)) +
   scale_linetype_manual(NULL,values = c('dashed','solid')) + 
   xlab(TeX("$\\tau$"))+
-  ylab("False discovery rate")
+  ylab("False discovery proportion")
 
 
 p2 <- ggplot(ds[ds$Metric == "Power" & ds$TargetLevel==0.2,],
@@ -407,7 +407,7 @@ p3 <- ggplot(ds[ds$Metric == "FCR" & ds$TargetLevel==0.2,],
         panel.grid.minor = element_line(colour = "grey"),
         text = element_text(size = 15), legend.position = "none", legend.text = element_text(size = 15)) +
   xlab(TeX("$\\tau$")) +
-  ylab("False coverage rate / miscoverage rate") +
+  ylab("Miscoverage rate") +
   scale_linetype_manual(NULL,values = c('dashed','solid'))
 
 p4 <- ggplot(ds[ds$Metric == "CI Length" & ds$TargetLevel==0.2,],
@@ -436,7 +436,7 @@ ggsave("figures/interactive_varytau_CI_poisson.pdf")
 
 
 t1 <- agg[agg$Splitting=="Full" & agg$tau == 0.1,]
-ds <- agg[agg$Splitting=="Blurred",]
+ds <- agg[agg$Splitting=="Fission",]
 for(i in 1:9/10) {
   t_temp <- t1
   t_temp$tau = i
@@ -456,7 +456,7 @@ p1 <- ggplot(ds[ds$Metric == "FDP" & ds$TargetLevel==0.2,],
         text = element_text(size = 15),legend.text = element_text(size = 15)) +
   scale_linetype_manual(NULL,values = c('dashed','solid')) + 
   xlab(TeX("$\\tau$"))+
-  ylab("False discovery rate")
+  ylab("False discovery proportion")
 
 
 p2 <- ggplot(ds[ds$Metric == "Power" & ds$TargetLevel==0.2,],
@@ -485,7 +485,7 @@ p3 <- ggplot(ds[ds$Metric == "FCR" & ds$TargetLevel==0.2,],
         panel.grid.minor = element_line(colour = "grey"),
         text = element_text(size = 15), legend.position = "none", legend.text = element_text(size = 15)) +
   xlab(TeX("$\\tau$")) +
-  ylab("False coverage rate") +
+  ylab("Miscoverage rate") +
   scale_linetype_manual(NULL,values = c('dashed','solid'))
 
 p4 <- ggplot(ds[ds$Metric == "CI Length" & ds$TargetLevel==0.2,],
