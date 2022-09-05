@@ -7,6 +7,13 @@ library(gridExtra)
 library(patchwork)
 library(latex2exp)
 
+################################################################################################################################
+################################################################################################################################
+# Section 3 Figurs: Interactive Testing Simulations
+################################################################################################################################
+################################################################################################################################
+
+#Aggregate statistics for a single trial run
 agg_stats <- function(df,alpha.FCR) {
   q <- nrow(df$x)
   pvals <- df$pvals
@@ -225,7 +232,7 @@ agg_stats <- function(df,alpha.FCR) {
 
 
 
-
+#Aggregate statistics across many trial runs
 get_summary <-function(filename,alpha.list,mu,tau) {
   load(filename)
   BH.mask.FDP<- colMeans(do.call(rbind.data.frame, lapply(results,function(x) x$BH.result.mask$FDP)))
@@ -340,6 +347,7 @@ get_summary <-function(filename,alpha.list,mu,tau) {
   
 }
 
+#Iterate over all files and compile results
 files <- list.files(path="results/results_interactive",  full.names=TRUE, recursive=FALSE)
 alpha.list <- seq(0.01, 0.3, 0.01)
 for(i in 1:length(files)){
@@ -357,6 +365,7 @@ for(i in 1:length(files)){
 }
 
 
+#All tau values will not influence the performance for the "reusing full dataset twice" compariosn, so choose a single tau as a representative of that
 t1 <- agg[agg$Splitting=="Full" & agg$tau == 0.1,]
 ds <- agg[agg$Splitting=="Fission",]
 for(i in 1:9/10) {
@@ -365,6 +374,8 @@ for(i in 1:9/10) {
   ds = rbind(ds,t_temp)
 }
 
+
+# Create plots for Poisson simulations
 ds <- ds[ds$type == "poisson",]
 p1 <- ggplot(ds[ds$Metric == "FDP" & ds$TargetLevel==0.2,],
              aes(x = tau, y = Value, color = Procedure,shape=Procedure,linetype=Splitting)) +
@@ -435,14 +446,7 @@ ggsave("figures/interactive_varytau_CI_poisson.pdf")
 
 
 
-t1 <- agg[agg$Splitting=="Full" & agg$tau == 0.1,]
-ds <- agg[agg$Splitting=="Fission",]
-for(i in 1:9/10) {
-  t_temp <- t1
-  t_temp$tau = i
-  ds = rbind(ds,t_temp)
-}
-
+# Create plots for Gaussian simulations
 ds <- ds[ds$type == "normal",]
 p1 <- ggplot(ds[ds$Metric == "FDP" & ds$TargetLevel==0.2,],
              aes(x = tau, y = Value, color = Procedure,shape=Procedure,linetype=Splitting)) +
@@ -512,7 +516,7 @@ p4
 ggsave("figures/interactive_varytau_CI_normal.pdf")
 
 
-
+#Create plots for example runs and the "true" region
 filename = "results/results_interactive/interactive_normal_0.1_2_0_50_250"
 load(filename)
 t <- results[[2]]

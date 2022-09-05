@@ -4,6 +4,7 @@
 # Author(s): Boyan Duan, James Leiner
 ###################################################################################################
 
+#Calculate CIs for Fahrmei-style CIs (Theorem 4)
 fahrmeir_CIs <- function(infer_model,alpha){
   resid = infer_model$fitted.values - infer_model$y
   Hn_inv <- vcov(infer_model)
@@ -23,7 +24,7 @@ fahrmeir_CIs <- function(infer_model,alpha){
   return(CI) 
 }
 
-
+# Run experiments for poisson distributed data 
 experiment_poisson = function(para_vary){
   source("regression_code/input_regression.R", local = TRUE)
   for (single_para_vary in para_vary) {
@@ -40,6 +41,7 @@ experiment_poisson = function(para_vary){
     beta= beta*scale
     dat = generate_poisson(n = n, p = p, beta = beta, type = type, rho = rho)
     
+    #Fissioned confidence intervals
     if ("masking" %in% methods) {
       g_Y = sapply(dat$Y, function(x){rbinom(1, size = x, prob = prob)})
       h_Y = dat$Y - g_Y
@@ -73,6 +75,8 @@ experiment_poisson = function(para_vary){
       }
       
     }
+    
+    # Reusing full dataset confidence intervals
     if ("full" %in% methods) {
       select_model = cv.glmnet(dat$X, dat$Y, family = "poisson")
       selected = which(coef(select_model, s = 'lambda.1se')[-1] != 0) 
@@ -98,6 +102,8 @@ experiment_poisson = function(para_vary){
         projected[["full"]] = glm(exp(dat$X%*%beta) ~ dat$X[,selected], family = "poisson")$coefficients[-1]
       }
     }
+    
+    #Data splitting confidence intervals
     if ('split' %in% methods) {
       split_ind = sample(1:n, size = n/2)
       select_model = cv.glmnet(dat$X[split_ind,], dat$Y[split_ind], family = "poisson")
@@ -136,6 +142,7 @@ experiment_poisson = function(para_vary){
 
 
 
+# Run experiments for Gaussian distributed data 
 experiment_linear = function(para_vary){
   source("regression_code/input_regression.R", local = TRUE)
   for (single_para_vary in para_vary) {
@@ -238,6 +245,7 @@ experiment_linear = function(para_vary){
 }
 
 
+# Find "projection" parameters for logistic regression onto the working model. 
 projected_beta = function(exp_y, X, beta) {
   if (is.matrix(X)) {
     model = function(para){
@@ -253,6 +261,7 @@ projected_beta = function(exp_y, X, beta) {
   return(ss)
 }
 
+#Run logistic regression experiments
 experiment_logistic = function(para_vary){
   source("regression_code/input_regression.R", local = TRUE)
   for (single_para_vary in para_vary) {
@@ -352,7 +361,7 @@ experiment_logistic = function(para_vary){
 
 
 
-
+# Compute uniform confidence intervals, following Koenker. 
 unif_CI = function(n, knots, Y, X, alpha,degree=1){
   k = length(knots) + degree
   if (length(knots) == 0) {
@@ -382,6 +391,7 @@ unif_CI = function(n, knots, Y, X, alpha,degree=1){
 }
 
 
+# From LASSO solution, identify where knots lie by evaluating discrete derivatives and finding which are non-zero. 
 find_knots <- function(fit_y,x,k=1,tol=0.01){
   first_deriv = diff(fit_y)/diff(x)
   second_deriv = diff(first_deriv)/diff(x)[2:(length(x)-1)]
@@ -396,7 +406,7 @@ find_knots <- function(fit_y,x,k=1,tol=0.01){
 }
 
 
-
+#Run trendfiltering experiments
 experiment_trendfilter = function(para_vary){
   source("regression_code/input_regression.R", local = TRUE)
   for (single_para_vary in para_vary) {
@@ -422,6 +432,7 @@ experiment_trendfilter = function(para_vary){
       g_Y = dat$Y + noise
       h_Y = dat$Y - noise
       
+      #Various methods of selecting knots
       if(type=="SURE"){
         tf = sure_trendfilter(1:n,g_Y, weights =rep(1,n),k=deg)
         lambda_min = tf$lambda_min

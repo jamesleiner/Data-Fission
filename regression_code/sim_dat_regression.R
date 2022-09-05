@@ -5,6 +5,8 @@
 # Author(s): Boyan Duan, James Leiner
 ###################################################################################################
 
+
+#Generate Poisson-distributed data 
 generate_poisson = function(n, p, beta, type, rho, add_influential = c()){
   if (type == "independent") {
     X = cbind(
@@ -34,6 +36,7 @@ generate_poisson = function(n, p, beta, type, rho, add_influential = c()){
 
 
 
+#Generate Gaussian-distributed data 
 generate_linear = function(n, p, beta, type, rho, add_influential = c()){
   if (type == "independent") {
     # X = cbind(
@@ -64,6 +67,7 @@ generate_linear = function(n, p, beta, type, rho, add_influential = c()){
 }
 
 
+#Generate Binomial-distributed data 
 generate_logistic = function(n, p, beta, type = "independent",add_influential = c()){
   if (type == "independent") {
     if (p <= 2) {
@@ -98,7 +102,7 @@ generate_logistic = function(n, p, beta, type = "independent",add_influential = 
   return(list(X = X, Y = Y, exp_y = exp_y, cluster = cluster))
 }
 
-
+# Construct time series trend to evaluate trend filtering on, as a function of number of knots, slope, and noise. 
 time_seq = function(n, slope, p, sigma){
   x = rep(0, n); v = rep(0, n)
   x[1] = 0; v[1] = 0; knots = c()
@@ -113,6 +117,7 @@ time_seq = function(n, slope, p, sigma){
   return(list(X = x, Y = y, knots = knots))
 }
 
+#Helper function to identify where the KL minimizer is by finding the root of a given score equation. 
 true_para = function(X, beta, selected, type, g_Y = NA, prob = NA, split_ind = NA){
   # exp_omit = rowSums(X[,selected] %*% beta[selected]) +
   #   colSums(beta[-selected]*(mu[-selected] +
