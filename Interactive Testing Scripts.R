@@ -1,4 +1,10 @@
+###################################################################################################
+# Helper functions to execute interactive multiple testing simulations
+#
+# Author(s): Boyan Duan, James Leiner
+###################################################################################################
 
+# Generate Gaussian noise with specific correlation sturcutre (rho) using Toeplitz matrix. 
 sig.gen <- function(n, mu, rho, type){
   if (type == 1){
     new.rho <- rho / n
@@ -27,6 +33,7 @@ sig.gen <- function(n, mu, rho, type){
 
 
 
+# Takes in p-values and returns rejection sequences for pre-determined set of alphas using BH
 summary.BH <- function(pvals, H0,values, mu,variance,
                        alpha.list = seq(0.01, 0.3, 0.01)){
   n <- length(pvals)
@@ -59,6 +66,7 @@ summary.BH <- function(pvals, H0,values, mu,variance,
 }
 
 
+# Takes in p-values and returns rejection sequences for pre-determined set of alphas using AdaPT
 summary.AdaPT <- function(adapt, H0, pvals,vals,mu,variance){
   nfrej <- apply(adapt$s, 2, function(s){
     tmp <- (pvals <= s)
@@ -85,6 +93,8 @@ summary.AdaPT <- function(adapt, H0, pvals,vals,mu,variance){
   return(df)
 }
 
+
+# Takes in p-values and returns rejection sequences for pre-determined set of alphas using STAR
 summary.STAR <- function(STAR.obj, H0,vals,mu,variance){
   nfrej <- apply(STAR.obj$mask, 2, function(x){
     sum(x[!H0], na.rm = TRUE)
@@ -107,14 +117,19 @@ summary.STAR <- function(STAR.obj, H0,vals,mu,variance){
 }
 
 
+# Run interactive testing experiments for a single trial run. 
 experiment_masked <- function(x,mu,tau,alpha.list,num.steps.update.score,scope.params,alt,null,type="normal",filename=NULL,seed=1){
   set.seed(seed)
   if(type == "normal"){
+    
+    #fission the data
     var <- sig.gen(n,mu,0,1)
     Y <- mvrnorm(1,mu,var)
     Z <- mvrnorm(1,rep(0,n),var)
     f_Y <- Y+tau*Z
     g_Y <- Y-(1/tau)*Z
+    
+    #return p-values for both fissioned and non-fissioned data
     pvals <- 1 - pnorm(Y)
     pvals_mask <- 1- pnorm(f_Y,sd=sqrt((1+tau**2)))
   }
@@ -123,6 +138,8 @@ experiment_masked <- function(x,mu,tau,alpha.list,num.steps.update.score,scope.p
     Z <- rbinom(n,Y,tau)
     g_Y = Y - Z
     f_Y = Z
+    
+    #masking scheme to make p-values continuous
     Y_minus = Y- 0.1
     f_Y_minus = f_Y - 0.1
     U1 <- runif(length(mu),0,1)
@@ -133,6 +150,8 @@ experiment_masked <- function(x,mu,tau,alpha.list,num.steps.update.score,scope.p
     pvals_mask <- 1 - rand_F
   }
   
+  
+  #Reject with BH, AdaPT, STAR for full data
   STAR.obj1 <- STAR.convex(pvals, x, 
                            alpha.list = alpha.list,
                            type = "model-assist",
@@ -148,6 +167,7 @@ experiment_masked <- function(x,mu,tau,alpha.list,num.steps.update.score,scope.p
   adapt.result_full <- summary.AdaPT(AdaPT.obj1, H0, pvals,Y,mu,1)
 
   
+  #Reject with BH, AdaPT, STAR for fissioned data
   STAR.obj2 <- STAR.convex(pvals_mask, x, 
                            alpha.list = alpha.list,
                            type = "model-assist",
@@ -168,7 +188,7 @@ experiment_masked <- function(x,mu,tau,alpha.list,num.steps.update.score,scope.p
               STAR.result.mask=STAR.result_mask, STAR.result.full = STAR.result_full,
               STAR.full.object=STAR.obj1,AdaPT.full.object=AdaPT.obj1,
               STAR.mask.object=STAR.obj2,AdaPT.mask.object=AdaPT.obj2))
-  if(filename == NULL){
+  if(is.null(filename)){
     save(file = paste(filename,tau,type,format(Sys.time(), "%Y-%m-%d_%H%M"),sep="_"), results)
   }
 }
