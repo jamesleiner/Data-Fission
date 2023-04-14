@@ -155,15 +155,21 @@ experiment_linear = function(para_vary){
     selected = list()
     projected = list()
     if(exists("add_influential")){
-      dat = generate_linear(n = n, p = p, beta = beta*scale, type = type, rho = rho,add_influential=add_influential)
+      dat = generate_linear(n = n, p = p, beta = beta*scale, type = type, rho = rho,add_influential=add_influential,error_type=error_type)
       n= n + length(add_influential)
     }
     else{
-      dat = generate_linear(n = n, p = p, beta = beta*scale, type = type, rho = rho)
+      dat = generate_linear(n = n, p = p, beta = beta*scale, type = type, rho = rho,error_type=error_type)
     }
     print(dat$cluster)
     if ("masking" %in% methods) {
-      noise = rnorm(n, sd = 1)
+      sd_z = dat$sd
+      if(est_var){
+        print("Estimating Variance")
+        sd_z <- summary(lm(dat$Y~dat$X))$sigma
+        print(sd_z)
+      }
+      noise = rnorm(n, sd = sd_z)
       g_Y = dat$Y + noise
       h_Y = dat$Y - noise
       

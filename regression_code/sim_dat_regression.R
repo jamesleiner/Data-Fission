@@ -37,7 +37,7 @@ generate_poisson = function(n, p, beta, type, rho, add_influential = c()){
 
 
 #Generate Gaussian-distributed data 
-generate_linear = function(n, p, beta, type, rho, add_influential = c()){
+generate_linear = function(n, p, beta, type, rho, add_influential = c(),error_type="gaussian"){
   if (type == "independent") {
     # X = cbind(
     #   # c(rep(0, n/2), rep(1, n/2)), #a1
@@ -61,9 +61,34 @@ generate_linear = function(n, p, beta, type, rho, add_influential = c()){
       X=rbind(X,mult*baseline)
     }
   }
-  Y = rnorm(n+length(add_influential)) + X%*%beta
+  if(error_type == "gaussian"){
+    Y = rnorm(n+length(add_influential)) + X%*%beta
+    sd = 1 
+  }
+  if(error_type == "t") {
+    print("T")
+    df = 5
+    error = rt(n+length(add_influential),df) 
+    sd = sqrt(df/(df-2))
+    Y = error/sd + X%*%beta
+  }
+  if(error_type == "laplace") {
+    print("LAPLACE")
+    Y = rlaplace(n+length(add_influential),1/sqrt(2)) + X%*%beta
+    sd=1
+  }
+  if(error_type == "sn") {
+    print("Skewed Normal")
+    omega = 1
+    alpha = 5
+    error = rsn(n+length(add_influential),0,omega,alpha)
+    mu = omega*(alpha/(sqrt(1+alpha**2)))*sqrt(2/pi)
+    sd = sqrt(omega**2 *(1-2*(alpha**2)/(1+alpha**2)/pi))
+    Y = (error-mu)/sd + X%*%beta
+  }
   cluster = factor(1:(n+length(add_influential)))
-  return(list(X = X, Y = Y, cluster = cluster, Sigma = Sigma))
+  
+  return(list(X = X, Y = Y, cluster = cluster, Sigma = Sigma,sd=1))
 }
 
 

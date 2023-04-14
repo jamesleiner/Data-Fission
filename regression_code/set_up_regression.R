@@ -29,6 +29,9 @@ suppressPackageStartupMessages({
   library(matrixStats)
   library(latex2exp)
   library(ggforce)
+  library(VGAM)
+  library(sn)
+  
   #library(glmgen)
   #library(trendfiltering)
 })

@@ -23,8 +23,8 @@ for (scale in scale_seq) {
 }
 save(result, file=paste("results/regression_linear_independent.Rdata",sep = ""))
   
-
-
+dat <- generate_linear(500,100, c(1, 0, rep(1,20), rep(0, p - 31), rep(-1,9)),"dependent",0.3)
+select_model = cv.glmnet(dat$X, dat$Y, family = "gaussian")
 
 rho_seq = seq(-0.5, 0.5, length.out = 5)
 p = 100
@@ -65,6 +65,141 @@ for (influ in influ_seq) {
 }
 save(result, file=paste("results/regression_linear_influential.Rdata",sep = ""))
 
+
+#######################################################################################################################
+# Linear Regression with Misspecified Models
+#######################################################################################################################
+
+scale_seq = seq(0, 0.2, length.out = 5)
+p = 100
+result = list()
+for (scale in scale_seq) { 
+  print(scale)
+  para_vary = list(list(name = "scale", value = scale),
+                   list(name = "est_var", value = TRUE),
+                   list(name = "error_type", value = "t"),
+                   list(name = "R", value = 500),
+                   list(name = "p", value = p),
+                   list(name = "beta", 
+                        value = c(1, 0, rep(1,20), rep(0, p - 31), rep(-1,9))
+                        # value = c(1, 0, rep(1,5), rep(0, p - 10), rep(2,3))
+                        # value = rep(c(1, 0, 0, 0, 0, 1, 0, 0, 0, 0), 10))
+                   )) 
+  result[[as.character(scale)]] = experiment_linear(para_vary)
+}
+save(result, file=paste("results/regression_linear_independent_t_estvar.Rdata",sep = ""))
+
+p = 100
+result = list()
+for (scale in scale_seq) { 
+  print(scale)
+  para_vary = list(list(name = "scale", value = scale),
+                   list(name = "est_var", value = FALSE),
+                   list(name = "error_type", value = "t"),
+                   list(name = "R", value = 500),
+                   list(name = "p", value = p),
+                   list(name = "beta", 
+                        value = c(1, 0, rep(1,20), rep(0, p - 31), rep(-1,9))
+                        # value = c(1, 0, rep(1,5), rep(0, p - 10), rep(2,3))
+                        # value = rep(c(1, 0, 0, 0, 0, 1, 0, 0, 0, 0), 10))
+                   )) 
+  result[[as.character(scale)]] = experiment_linear(para_vary)
+}
+save(result, file=paste("results/regression_linear_independent_t.Rdata",sep = ""))
+
+
+
+p = 100
+result = list()
+for (scale in scale_seq) { 
+  print(scale)
+  para_vary = list(list(name = "scale", value = scale),
+                   list(name = "est_var", value = TRUE),
+                   list(name = "error_type", value = "sn"),
+                   list(name = "R", value = 500),
+                   list(name = "p", value = p),
+                   list(name = "beta", 
+                        value = c(1, 0, rep(1,20), rep(0, p - 31), rep(-1,9))
+                        # value = c(1, 0, rep(1,5), rep(0, p - 10), rep(2,3))
+                        # value = rep(c(1, 0, 0, 0, 0, 1, 0, 0, 0, 0), 10))
+                   )) 
+  result[[as.character(scale)]] = experiment_linear(para_vary)
+}
+save(result, file=paste("results/regression_linear_independent_sn_estvar.Rdata",sep = ""))
+
+p = 100
+result = list()
+for (scale in scale_seq) { 
+  print(scale)
+  para_vary = list(list(name = "scale", value = scale),
+                   list(name = "est_var", value = FALSE),
+                   list(name = "error_type", value = "sn"),
+                   list(name = "R", value = 500),
+                   list(name = "p", value = p),
+                   list(name = "beta", 
+                        value = c(1, 0, rep(1,20), rep(0, p - 31), rep(-1,9))
+                        # value = c(1, 0, rep(1,5), rep(0, p - 10), rep(2,3))
+                        # value = rep(c(1, 0, 0, 0, 0, 1, 0, 0, 0, 0), 10))
+                   )) 
+  result[[as.character(scale)]] = experiment_linear(para_vary)
+}
+save(result, file=paste("results/regression_linear_independent_sn.Rdata",sep = ""))
+
+p = 100
+result = list()
+for (scale in scale_seq) { 
+  print(scale)
+  para_vary = list(list(name = "scale", value = scale),
+                   list(name = "est_var", value = TRUE),
+                   list(name = "error_type", value = "laplace"),
+                   list(name = "R", value = 500),
+                   list(name = "p", value = p),
+                   list(name = "beta", 
+                        value = c(1, 0, rep(1,20), rep(0, p - 31), rep(-1,9))
+                        # value = c(1, 0, rep(1,5), rep(0, p - 10), rep(2,3))
+                        # value = rep(c(1, 0, 0, 0, 0, 1, 0, 0, 0, 0), 10))
+                   )) 
+  result[[as.character(scale)]] = experiment_linear(para_vary)
+}
+save(result, file=paste("results/regression_linear_independent_laplace_estvar.Rdata",sep = ""))
+
+p = 100
+result = list()
+for (scale in scale_seq) { 
+  print(scale)
+  para_vary = list(list(name = "scale", value = scale),
+                   list(name = "est_var", value = FALSE),
+                   list(name = "error_type", value = "laplace"),
+                   list(name = "R", value = 500),
+                   list(name = "p", value = p),
+                   list(name = "beta", 
+                        value = c(1, 0, rep(1,20), rep(0, p - 31), rep(-1,9))
+                        # value = c(1, 0, rep(1,5), rep(0, p - 10), rep(2,3))
+                        # value = rep(c(1, 0, 0, 0, 0, 1, 0, 0, 0, 0), 10))
+                   )) 
+  result[[as.character(scale)]] = experiment_linear(para_vary)
+}
+save(result, file=paste("results/regression_linear_independent_laplace.Rdata",sep = ""))
+
+
+
+scale_seq = seq(0, 0.2, length.out = 5)
+p = 100
+result = list()
+for (scale in scale_seq) { 
+  print(scale)
+  para_vary = list(list(name = "scale", value = scale),
+                   list(name = "est_var", value = TRUE),
+                   list(name = "R", value = 500),
+                   list(name = "p", value = p),
+                   list(name = "beta", 
+                        value = c(1, 0, rep(1,20), rep(0, p - 31), rep(-1,9))
+                        # value = c(1, 0, rep(1,5), rep(0, p - 10), rep(2,3))
+                        # value = rep(c(1, 0, 0, 0, 0, 1, 0, 0, 0, 0), 10))
+                   )) 
+  result[[as.character(scale)]] = experiment_linear(para_vary)
+}
+save(result, file=paste("results/regression_linear_independent_estvar.Rdata",sep = ""))
 
 
 #######################################################################################################################

@@ -19,4 +19,5 @@ scale = 1
 alpha = 0.2
 methods = c("masking", "full", "split")
 CI_type = "uniform"
+error_type = "gaussian"
 R = 100

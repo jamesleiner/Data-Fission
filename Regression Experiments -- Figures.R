@@ -364,9 +364,151 @@ get_graphs(wd,"regression_logistic_varyprob","prob",vary_seq = seq(0.05, 0.45, 0
 get_graphs(wd,"regression_logistic_varyprob","prob",vary_seq = seq(0.05, 0.45, 0.05),type='sandwich',xlab="Masking Probability")
 
 
+################################################################################################################################
+################################################################################################################################
+# Linear Regression with Misspecified Errors
+################################################################################################################################
+################################################################################################################################
+
+get_misspecified_data <- function(filename,vary_seq,beta,label,label2){
+  load(file = paste(wd, filename,".Rdata", sep = ""))
+  for(par in vary_seq){
+    agg <- cbind(label,label2,par,data.frame(t(sapply(result[[as.character(par)]], function(x) get_metrics_linear(x,"masking",beta)))))
+    if(par == vary_seq[1]){
+      res_agg = agg
+    }
+    else{
+      res_agg = rbind(res_agg,agg)
+    }
+  }
+  colnames(res_agg) <- c("type","est","scale","error_FCR","CI_length","FSR","power_sign","power_selected","precision_selected")
+  return(res_agg)
+}
+
+p=100
+vary_seq = seq(0, 0.2, length.out = 5)
+beta = c(1, 0, rep(1,20), rep(0, p - 31), rep(-1,9))
+xlab="Signal"
+t1 <- get_misspecified_data("regression_linear_independent_sn",vary_seq,beta,"Skewed Normal","Known")
+t2 <- get_misspecified_data("regression_linear_independent_t",vary_seq,beta,"t","Known")
+t3 <- get_misspecified_data("regression_linear_independent_laplace",vary_seq,beta,"Laplace","Known")
+t4 <- get_misspecified_data("regression_linear_independent",vary_seq,beta,"Gaussian","Known")
+t5 <- get_misspecified_data("regression_linear_independent_sn_estvar",vary_seq,beta,"Skewed Normal","Estimated")
+t6 <- get_misspecified_data("regression_linear_independent_t_estvar",vary_seq,beta,"t","Estimated")
+t7 <- get_misspecified_data("regression_linear_independent_laplace_estvar",vary_seq,beta,"Laplace","Estimated")
+t8 <- get_misspecified_data("regression_linear_independent_estvar",vary_seq,beta,"Gaussian","Estimated")
+ds <- rbind(t1,t2,t3,t4,t5,t6,t7,t8)
+
+df = aggregate(ds$error_FCR ~ ds[,3] + ds$type + ds$est, FUN = mean)
+colnames(df) <-c("signal","type","est","FCR")
+FCR_plot <- df %>%
+  ggplot( aes(x=signal, y=FCR, color=type,linetype=est)) +
+  geom_line(aes(color = type,linetype=est), size = 1.5) +
+  geom_point(aes(shape = type, color = type), size = 3) +
+  theme(legend.title = element_blank(),
+        panel.background = element_rect(fill = "white", colour = "black"),
+        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
+        panel.grid.minor = element_line(colour = "grey"), legend.position= "bottom",
+        text = element_text(size = 15), legend.text = element_text(size = 15)) +
+  xlab(xlab) +
+  ylab("FCR") +
+  geom_hline(yintercept=0.2)+
+  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
+
+as_ggplot(get_legend(FCR_plot))
+library(ggpubr)
+
+df = aggregate(ds$CI_length ~ ds[,3] + ds$type + ds$est, FUN = mean)
+colnames(df) <-c("signal","type","est","CI Length")
+CI_plot <- df %>%
+  ggplot( aes(x=signal, y=`CI Length`, color=type,linetype=est)) +
+  geom_line(aes(color = type,linetype=est), size = 1.5) +
+  geom_point(aes(shape = type, color = type), size = 3) +
+  theme(legend.title = element_blank(),
+        panel.background = element_rect(fill = "white", colour = "black"),
+        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
+        panel.grid.minor = element_line(colour = "grey"), legend.position= "none",
+        text = element_text(size = 15), legend.text = element_text(size = 15)) +
+  xlab(xlab) +
+  ylab("CI Length")
+
+
+df = aggregate(ds$FSR~ ds[,3] + ds$type + ds$est, FUN = mean)
+colnames(df) <-c("signal","type","est","FSR")
+FSR_plot <- df %>%
+  ggplot( aes(x=signal, y=FSR, color=type,linetype=est)) +
+  geom_line(aes(color = type,linetype=est), size = 1.5) +
+  geom_point(aes(shape = type, color = type), size = 3) +
+  theme(legend.title = element_blank(),
+        panel.background = element_rect(fill = "white", colour = "black"),
+        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
+        panel.grid.minor = element_line(colour = "grey"),
+        text = element_text(size = 15),
+        legend.position = "none", legend.text = element_text(size = 15)) +
+  xlab(xlab) +
+  ylab("FSR") +
+  geom_hline(yintercept=0.2)+
+  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
+
+
+df = aggregate(ds$power_sign~ ds[,3] + ds$type + ds$est, FUN = mean)
+colnames(df) <-c("signal","type","est","power_sign")
+power_sign_plot <- df %>%
+  ggplot( aes(x=signal, y=power_sign, color=type,linetype=est)) +
+  geom_line(aes(color = type,linetype=est), size = 1.5) +
+  geom_point(aes(shape = type, color = type), size = 3) +
+  theme(legend.title = element_blank(),
+        panel.background = element_rect(fill = "white", colour = "black"),
+        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
+        panel.grid.minor = element_line(colour = "grey"),
+        text = element_text(size = 15),
+        legend.position = "none", legend.text = element_text(size = 15)) +
+  xlab(xlab) +
+  ylab("Power Sign") +
+  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
 
 
 
+df = aggregate(ds$power_selected~ ds[,3] + ds$type + ds$est, FUN = mean)
+colnames(df) <-c("signal","type","est","power_selected")
+power_selected_plot <- df %>%
+  ggplot( aes(x=signal, y=power_selected, color=type,linetype=est)) +
+  geom_line(aes(color = type,linetype=est), size = 1.5) +
+  geom_point(aes(shape = type, color = type), size = 3) +
+  theme(legend.title = element_blank(),
+        panel.background = element_rect(fill = "white", colour = "black"),
+        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
+        panel.grid.minor = element_line(colour = "grey"),
+        text = element_text(size = 15),
+        legend.position = "none", legend.text = element_text(size = 15)) +
+  xlab(xlab) +
+  ylab("Power Selected") +
+  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
+
+
+
+df = aggregate(ds$precision_selected~ ds[,3] + ds$type + ds$est, FUN = mean)
+colnames(df) <-c("signal","type","est","precision_selected")
+precision_selected_plot <- df %>%
+  ggplot( aes(x=signal, y=precision_selected, color=type,linetype=est)) +
+  geom_line(aes(color = type,linetype=est), size = 1.5) +
+  geom_point(aes(shape = type, color = type), size = 3) +
+  theme(legend.title = element_blank(),
+        panel.background = element_rect(fill = "white", colour = "black"),
+        panel.grid.major = element_line(colour = "grey", linetype = "dotted"),
+        panel.grid.minor = element_line(colour = "grey"),
+        text = element_text(size = 15),
+        legend.position = "none", legend.text = element_text(size = 15)) +
+  xlab(xlab) +
+  ylab("Power Selected") +
+  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0,1)) 
+
+ggsave(paste(outdir, "linear_misspecified_FCR.pdf",sep=""),FCR_plot)
+ggsave(paste(outdir, "linear_misspecified_CI_length.pdf",sep=""),CI_plot)
+ggsave(paste(outdir, "linear_misspecified_FSR.pdf",sep=""),FSR_plot)
+ggsave(paste(outdir,  "linear_misspecified_power_sign.pdf",sep=""),power_sign_plot)
+ggsave(paste(outdir,  "linear_misspecified_power_selected.pdf",sep=""),power_selected_plot)
+ggsave(paste(outdir, "linear_misspecified_precision_selected.pdf",sep=""),precision_selected_plot)
 ################################################################################################################################
 ################################################################################################################################
 # Section 6 Figures: Trend Filtering 
