@@ -1,7 +1,5 @@
 ###################################################################################################
 # Helper functions to execute experiments (Gaussian, Poisson, Logistic Regression and Trend Filtering)
-#
-# Author(s): Boyan Duan, James Leiner
 ###################################################################################################
 
 #Calculate CIs for Fahrmei-style CIs (Theorem 4)

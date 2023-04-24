@@ -1,11 +1,8 @@
 ###################################################################################################
 # Reproduce spectroscopy example in section 6.3
-# Thank you to Collin Politsch for providing data and trendfiltering package
 #
 # Note that trend filtering package by Collin Politsch is a prerequisite to run these experiments. 
 # Please download at: https://capolitsch.github.io/trendfiltering/
-#
-# Author(s): James Leiner
 ###################################################################################################
 
 # Load in required scripts and data
