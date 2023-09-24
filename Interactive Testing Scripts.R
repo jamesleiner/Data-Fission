@@ -1,10 +1,20 @@
 ###################################################################################################
 # Helper functions to execute interactive multiple testing simulations
 #
-# Author(s): Boyan Duan, James Leiner
 ###################################################################################################
 
-# Generate Gaussian noise with specific correlation sturcutre (rho) using Toeplitz matrix. 
+
+###################################################################################################
+# Generate Gaussian noise with specific correlation structure (rho) using Toeplitz matrix.
+# Inputs:
+#   - n (numeric): Number of observations.
+#   - mu (numeric): Mean vector.
+#   - rho (numeric): Correlation parameter.
+#   - type (numeric): Type of correlation structure (1, 2, or 3).
+# Outputs:
+#   - Sigma (matrix): Covariance matrix with the specified correlation structure.
+###################################################################################################
+
 sig.gen <- function(n, mu, rho, type){
   if (type == 1){
     new.rho <- rho / n
@@ -32,8 +42,19 @@ sig.gen <- function(n, mu, rho, type){
 }
 
 
+###################################################################################################
+# Takes in p-values and returns rejection sequences for pre-determined set of alphas using BH.
+# Inputs:
+#   - pvals (numeric vector): Vector of p-values.
+#   - H0 (logical vector): Logical vector indicating true null hypotheses.
+#   - values (numeric vector): Vector of values associated with location at each point on the grid.
+#   - mu (numeric vector): Mean vector associated with the entry at each point on the grid.
+#   - variance (numeric): Variance of the error term.
+#   - alpha.list (numeric vector): Vector of significance levels to evaluate BH on.
+# Outputs:
+#   - df (data frame): Data frame containing number of rejections, FDP, power, and mean of rejected region
+###################################################################################################
 
-# Takes in p-values and returns rejection sequences for pre-determined set of alphas using BH
 summary.BH <- function(pvals, H0,values, mu,variance,
                        alpha.list = seq(0.01, 0.3, 0.01)){
   n <- length(pvals)
@@ -66,7 +87,19 @@ summary.BH <- function(pvals, H0,values, mu,variance,
 }
 
 
-# Takes in p-values and returns rejection sequences for pre-determined set of alphas using AdaPT
+###################################################################################################
+# Takes in p-values and returns rejection sequences for pre-determined set of alphas using AdaPT.
+# Inputs:
+#   - adapt (AdaPT object): AdaPT object.
+#   - pvals (numeric vector): Vector of p-values.
+#   - H0 (logical vector): Logical vector indicating true null hypotheses.
+#   - values (numeric vector): Vector of values associated with location at each point on the grid.
+#   - mu (numeric vector): Mean vector associated with the entry at each point on the grid.
+#   - variance (numeric): Variance of the error term.
+# Outputs:
+#   - df (data frame): Data frame containing number of rejections, FDP, power, and mean of rejected region
+###################################################################################################
+
 summary.AdaPT <- function(adapt, H0, pvals,vals,mu,variance){
   nfrej <- apply(adapt$s, 2, function(s){
     tmp <- (pvals <= s)
@@ -94,7 +127,18 @@ summary.AdaPT <- function(adapt, H0, pvals,vals,mu,variance){
 }
 
 
-# Takes in p-values and returns rejection sequences for pre-determined set of alphas using STAR
+###################################################################################################
+# Takes in p-values and returns rejection sequences for pre-determined set of alphas using STAR.
+# Inputs:
+#   - STAR.obj (STAR object): STAR object.
+#   - H0 (logical vector): Logical vector indicating true null hypotheses.
+#   - values (numeric vector): Vector of values associated with location at each point on the grid.
+#   - mu (numeric vector): Mean vector associated with the entry at each point on the grid.
+#   - variance (numeric): Variance of the error term.
+# Outputs:
+#   - df (data frame): Data frame containing number of rejections, FDP, power, and mean of rejected region
+###################################################################################################
+
 summary.STAR <- function(STAR.obj, H0,vals,mu,variance){
   nfrej <- apply(STAR.obj$mask, 2, function(x){
     sum(x[!H0], na.rm = TRUE)
@@ -116,8 +160,25 @@ summary.STAR <- function(STAR.obj, H0,vals,mu,variance){
   return(df)
 }
 
+###################################################################################################
+# Run interactive testing experiments for a single trial run. Generating data according to the specified distribution type 
+# and running multiple statistical tests (BH, AdaPT, STAR) on the data.
+# Inputs:
+#   - x (numeric): Input parameter representing locations on grid.
+#   - mu (numeric vector): Mean vector representing value at each parameter.
+#   - tau (numeric): Tau chosen for splitting the data.
+#   - alpha.list (numeric vector): Vector of significance levels to evaluate BH on.
+#   - num.steps.update.score (numeric): Number of steps to update the score.
+#   - scope.params (numeric): Scope parameters.
+#   - alt (numeric): Value to assign to grid for locations following an alternative hypothesis.
+#   - null (numeric): Value to assign to grid for locations following a null hypothesis (typically 0).
+#   - type (character): Type of distribution to run simulation on ("normal" or "poisson").
+#   - filename (character): Optional filename for saving results.
+#   - seed (numeric): Random seed for reproducibility.
+# Outputs:
+#   - List of experimental results, one for each trial run.
+###################################################################################################
 
-# Run interactive testing experiments for a single trial run. 
 experiment_masked <- function(x,mu,tau,alpha.list,num.steps.update.score,scope.params,alt,null,type="normal",filename=NULL,seed=1){
   set.seed(seed)
   if(type == "normal"){
