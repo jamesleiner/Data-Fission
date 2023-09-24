@@ -2,7 +2,16 @@
 # Helper functions to execute experiments (Gaussian, Poisson, Logistic Regression and Trend Filtering)
 ###################################################################################################
 
-#Calculate CIs for Fahrmei-style CIs (Theorem 4)
+
+###################################################################################################
+# Function: Calculate CIs for Fahrmei-style CIs (Theorem 4 in paper)
+# Input:
+#   - infer_model (object of class "glm"): A fitted regression model with Poisson or Binomial family.
+#   - alpha (numeric): The desired significance level for the confidence interval.
+# Output:
+#   - CI (matrix of numeric values): A matrix containing confidence intervals for regression coefficients.
+###################################################################################################
+
 fahrmeir_CIs <- function(infer_model,alpha){
   resid = infer_model$fitted.values - infer_model$y
   Hn_inv <- vcov(infer_model)
@@ -22,7 +31,31 @@ fahrmeir_CIs <- function(infer_model,alpha){
   return(CI) 
 }
 
-# Run experiments for poisson distributed data 
+###################################################################################################
+# Function:  Run experiments to construct confidence intervals for Poisson distributed experiments. 
+# Input:
+#   - para_vary (list): A list of parameters and their values to vary in the experiment. The possible parameters
+#     to include anything chosen in the input_regression.R file (reproduced below for reference). If no parameters are given
+#     or some parameters are missing, the default values used in input_regression are used. 
+# Possible paramaters that can be varied:
+#   - n (integer): Number of observations.
+#   - prob (numeric): Parameter tau
+#   - beta (numeric vector): Coefficients for the covariates.
+#   - type (character): Type of data generation for the design matrix ("independent" or "correlated").
+#   - degree (numeric): Degree parameter to use for Toeplitz matrix for covariance matrix construction.
+#   - scale (numeric): Scale parameter for regression simulations.
+#   - alpha (numeric): Significance level for constructing confidence intervals.
+#   - methods (character vector): Methods to use in simulations ("masking" - data fission, "full" - full dataset reuse, "split" - data splitting).
+#   - error_type (character): Type of error distribution ("gaussian").
+#   - R (integer): Number of iterations in simulations.
+# Output: List of lists. The outer indexing corresponds to each trial number. Each trial has three additional objects within the list:
+#   - CIs (numeric matrix): confidence intervals designed to cover the projection parameters.
+#   - projected (numeric vector): projection parameters the CIs are designed to cover.
+#   - selected (numeric vector): list of selected covariates to use in the inferential models.
+#   - beta (numeric vector): true coefficients of the known model. 
+###################################################################################################
+
+
 experiment_poisson = function(para_vary){
   source("regression_code/input_regression.R", local = TRUE)
   for (single_para_vary in para_vary) {
@@ -140,7 +173,32 @@ experiment_poisson = function(para_vary){
 
 
 
-# Run experiments for Gaussian distributed data 
+
+
+###################################################################################################
+# Function:  Run experiments to construct confidence intervals for Gaussian distributed experiments. 
+# Input:
+#   - para_vary (list): A list of parameters and their values to vary in the experiment. The possible parameters
+#     to include anything chosen in the input_regression.R file (reproduced below for reference). If no parameters are given
+#     or some parameters are missing, the default values used in input_regression are used. 
+# Possible paramaters that can be varied:
+#   - n (integer): Number of observations.
+#   - prob (numeric): Parameter tau
+#   - beta (numeric vector): Coefficients for the covariates.
+#   - type (character): Type of data generation for the design matrix ("independent" or "correlated").
+#   - degree (numeric): Degree parameter to use for Toeplitz matrix for covariance matrix construction.
+#   - scale (numeric): Scale parameter for regression simulations.
+#   - alpha (numeric): Significance level for constructing confidence intervals.
+#   - methods (character vector): Methods to use in simulations ("masking" - data fission, "full" - full dataset reuse, "split" - data splitting).
+#   - error_type (character): Type of error distribution ("gaussian").
+#   - R (integer): Number of iterations in simulations.
+# Output: List of lists. The outer indexing corresponds to each trial number. Each trial has three additional objects within the list:
+#   - CIs (numeric matrix): confidence intervals designed to cover the projection parameters.
+#   - projected (numeric vector): projection parameters the CIs are designed to cover.
+#   - selected (numeric vector): list of selected covariates to use in the inferential models.
+###################################################################################################
+
+
 experiment_linear = function(para_vary){
   source("regression_code/input_regression.R", local = TRUE)
   for (single_para_vary in para_vary) {
@@ -265,7 +323,32 @@ projected_beta = function(exp_y, X, beta) {
   return(ss)
 }
 
-#Run logistic regression experiments
+
+
+###################################################################################################
+# Function:  Run experiments to construct confidence intervals for Binomial distributed experiments. 
+# Input:
+#   - para_vary (list): A list of parameters and their values to vary in the experiment. The possible parameters
+#     to include anything chosen in the input_regression.R file (reproduced below for reference). If no parameters are given
+#     or some parameters are missing, the default values used in input_regression are used. 
+# Possible paramaters that can be varied:
+#   - n (integer): Number of observations.
+#   - prob (numeric): Parameter tau
+#   - beta (numeric vector): Coefficients for the covariates.
+#   - type (character): Type of data generation for the design matrix ("independent" or "correlated").
+#   - degree (numeric): Degree parameter to use for Toeplitz matrix for covariance matrix construction.
+#   - scale (numeric): Scale parameter for regression simulations.
+#   - alpha (numeric): Significance level for constructing confidence intervals.
+#   - methods (character vector): Methods to use in simulations ("masking" - data fission, "full" - full dataset reuse, "split" - data splitting).
+#   - error_type (character): Type of error distribution ("gaussian").
+#   - R (integer): Number of iterations in simulations.
+# Output: List of lists. The outer indexing corresponds to each trial number. Each trial has three additional objects within the list:
+#   - CIs (numeric matrix): confidence intervals designed to cover the projection parameters.
+#   - projected (numeric vector): projection parameters the CIs are designed to cover.
+#   - selected (numeric vector): list of selected covariates to use in the inferential models.
+#   - beta (numeric vector): true coefficients of the known model. 
+###################################################################################################
+
 experiment_logistic = function(para_vary){
   source("regression_code/input_regression.R", local = TRUE)
   for (single_para_vary in para_vary) {
@@ -365,7 +448,24 @@ experiment_logistic = function(para_vary){
 
 
 
-# Compute uniform confidence intervals, following Koenker. 
+
+#####################################################################
+# Compute uniform confidence intervals for trend filtered solutions, following 
+# Koenker, R (2011). "Additive models for quantile regression: Model selection and confidence bandaids"
+#
+# Inputs:
+# - n (integer): number of data points
+# - knots (numeric vector): knot locations
+# - Y (numeric vector): response variable
+# - X (numeric matrix): input data
+# - alpha (numeric): significance level
+# - degree (integer): degree of the trend
+# Outputs:
+# - List with the following elements:
+#   - predicted (numeric matrix): predicted values and confidence intervals
+#   - c (numeric): critical value for t-test
+#   - mean_se (numeric): estimated standard error
+#####################################################################
 unif_CI = function(n, knots, Y, X, alpha,degree=1){
   k = length(knots) + degree
   if (length(knots) == 0) {
@@ -395,7 +495,16 @@ unif_CI = function(n, knots, Y, X, alpha,degree=1){
 }
 
 
-# From LASSO solution, identify where knots lie by evaluating discrete derivatives and finding which are non-zero. 
+###############################################################################
+# find_knots: Find knot locations for trend filtering estimate based on discrete derivatives
+# Inputs:
+# - fit_y (numeric vector): fitted values
+# - x (numeric vector): x values
+# - k (integer): order of trend filtered fit (k=1 or k=2 supported)
+# - tol (numeric): tolerance for detecting non-zero derivatives
+# Outputs:
+# - knots (integer vector): detected knot locations
+###############################################################################
 find_knots <- function(fit_y,x,k=1,tol=0.01){
   first_deriv = diff(fit_y)/diff(x)
   second_deriv = diff(first_deriv)/diff(x)[2:(length(x)-1)]
@@ -410,7 +519,33 @@ find_knots <- function(fit_y,x,k=1,tol=0.01){
 }
 
 
-#Run trendfiltering experiments
+###################################################################################################
+# Function:  Run experiments to construct confidence intervals for trend filtering distributed experiments. 
+# Input:
+#   - para_vary (list): A list of parameters and their values to vary in the experiment. The possible parameters
+#     to include anything chosen in the input_regression.R file (reproduced below for reference). If no parameters are given
+#     or some parameters are missing, the default values used in input_regression are used. 
+# Possible paramaters that can be varied:
+#   - n (integer): Number of observations.
+#   - prob (numeric): Parameter tau
+#   - slope (numeric): Slope parameter for time series trend construction.
+#   - p (numeric): Probability of changing the trend for time series trend construction.
+#   - sigma (numeric): Standard deviation of the noise for time series trend construction.
+#   - alpha (numeric): Significance level for constructing confidence intervals.
+#   - CI_type (character): Type of confidence intervals for trend filtering uncertainty quantification ("uniform" or "pointwise").
+#   - error_type (character): Type of error distribution ("gaussian").
+#   - R (integer): Number of iterations in simulations.
+# Output: List of lists. The outer indexing corresponds to each trial number. Each trial has three additional objects within the list:
+#   - CI_bend (numeric matrix): confidence intervals designed to cover the projection parameters.
+#   - project_trend (numeric vector): projection parameters the CIs are designed to cover.
+#   - real_trend (numeric vector): example 
+#   - selected (numeric vector): list of selected covariates to use in the inferential models.
+#   - nk_selected (numeric): number of knots selected
+#   - nk_true (numeric): number of knots in true distribution of the data
+#   - c (numeric): critical value for t-test used in Koeneker-style uniform confidence intervals
+#   - mean_se (numeric): estimated standard error from confidence intervals
+###################################################################################################
+
 experiment_trendfilter = function(para_vary){
   source("regression_code/input_regression.R", local = TRUE)
   for (single_para_vary in para_vary) {

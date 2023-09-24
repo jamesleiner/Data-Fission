@@ -5,7 +5,27 @@
 ###################################################################################################
 
 
-#Generate Poisson-distributed data 
+
+###################################################################################################
+# Generate Poisson-distributed data
+# Generates synthetic data with Poisson-distributed response variable.
+# Inputs:
+#   - n (integer): Number of observations.
+#   - p (integer): Number of covariates.
+#   - beta (numeric vector): Coefficients for the covariates.
+#   - type: Type of data generation for the design matrix ("independent" or "correlated"). If the data
+#           is correlated, then the covariates are drawn from a multivariate normal with covariance matrix
+#           designed as Toeplitz matrix with correlation parameter rho.
+#   - rho (numeric): Correlation parameter for correlated data.
+#   - add_influential (numeric vector): Additional influential covariate to add into the design matrix. By default
+#           the user's vector will be interpreted as a multiple to apply to the largest existing entry in the design matrix.
+# Outputs:
+#   - X (matrix): Design matrix.
+#   - Y (numeric vector): Poisson-distributed response.
+#   - cluster (factor): Cluster information for use in some methods that assumed heteroscedastic responses.
+#     This functionality is not required for these experiments, so only a vector of 1s is returned.
+###################################################################################################
+
 generate_poisson = function(n, p, beta, type, rho, add_influential = c()){
   if (type == "independent") {
     X = cbind(
@@ -35,7 +55,28 @@ generate_poisson = function(n, p, beta, type, rho, add_influential = c()){
 
 
 
-#Generate Gaussian-distributed data 
+###################################################################################################
+# generate_linear: Generates synthetic data with Gaussian-distributed response variable.
+# Inputs:
+#   - n (integer): Number of observations.
+#   - p (integer): Number of covariates.
+#   - beta (numeric vector): Coefficients for the covariates.
+#   - type: Type of data generation for the design matrix ("independent" or "correlated"). If the data
+#           is correlated, then the covariates are drawn from a multivariate normal with covariance matrix
+#           designed as Toeplitz matrix with correlation parameter rho.
+#   - rho (numeric): Correlation parameter for correlated data.
+#   - add_influential (numeric vector): Additional influential covariates (optional).
+#   - error_type (character): Type of error distribution to use ("gaussian" - Gaussian distrubted errors, "t"
+#      - t-distributed errors, "laplace" -- Laplace distributed errors, "sn" - skewed normal distributed errors).
+# Outputs:
+#   - X (matrix): Design matrix.
+#   - Y (numeric vector): Gaussian-distributed response variable.
+#   - cluster (factor): Cluster information for use in some methods that assumed heteroscedastic responses.
+#     This functionality is not required for these experiments, so only a vector of 1s is returned.
+#   - Sigma (matrix): Covariance matrix for covariance (if correlated data).
+#   - sd (numeric): Standard deviation of the response variable.
+###################################################################################################
+
 generate_linear = function(n, p, beta, type, rho, add_influential = c(),error_type="gaussian"){
   if (type == "independent") {
     # X = cbind(
@@ -87,11 +128,31 @@ generate_linear = function(n, p, beta, type, rho, add_influential = c(),error_ty
   }
   cluster = factor(1:(n+length(add_influential)))
   
-  return(list(X = X, Y = Y, cluster = cluster, Sigma = Sigma,sd=1))
+  return(list(X = X, Y = Y, cluster = cluster, Sigma = Sigma,sd=sd))
 }
 
 
-#Generate Binomial-distributed data 
+###################################################################################################
+# generate_logistic: Generates synthetic data with Binomial-distributed response variable.
+# Inputs:
+#   - n (integer): Number of observations.
+#   - p (integer): Number of covariates.
+#   - beta (numeric vector): Coefficients for the covariates.
+#   - type (character): Type of data generation for the design matrix ("independent" or "correlated").
+#                       If the data is correlated, then the covariates are drawn from a multivariate normal
+#                       with a covariance matrix designed as a Toeplitz matrix with correlation parameter rho.
+#   - add_influential (numeric vector): Additional influential covariate to add into the design matrix.
+#                                      By default, the user's vector will be interpreted as a multiple to apply
+#                                      to the largest existing entry in the design matrix.
+# Outputs:
+#   - X (matrix): Design matrix.
+#   - Y (numeric vector): Binomial-distributed response.
+#   - exp_y (numeric vector): Expected probabilities.
+#   - cluster (factor): Cluster information for use in some methods that assume heteroscedastic responses.
+#     This functionality is not required for these experiments, so only a vector of 1s is returned.
+###################################################################################################
+
+
 generate_logistic = function(n, p, beta, type = "independent",add_influential = c()){
   if (type == "independent") {
     if (p <= 2) {
@@ -126,7 +187,19 @@ generate_logistic = function(n, p, beta, type = "independent",add_influential = 
   return(list(X = X, Y = Y, exp_y = exp_y, cluster = cluster))
 }
 
-# Construct time series trend to evaluate trend filtering on, as a function of number of knots, slope, and noise. 
+
+###################################################################################################
+# time_seq: Construct time series trend to evaluate trend filtering on, as a function of number of knots, slope, and noise. 
+# Inputs:
+#   - n (integer): Number of observations.
+#   - slope (numeric): Slope of the trend at change points.
+#   - p (numeric): Probability of changing the trend.
+#   - sigma (numeric): Standard deviation of the noise.
+# Outputs:
+#   - X (numeric vector): True trend.
+#   - Y (numeric vector): Observed time series with noise.
+#   - knots (integer vector): Indices of trend change points.
+###################################################################################################
 time_seq = function(n, slope, p, sigma){
   x = rep(0, n); v = rep(0, n)
   x[1] = 0; v[1] = 0; knots = c()
@@ -141,7 +214,21 @@ time_seq = function(n, slope, p, sigma){
   return(list(X = x, Y = y, knots = knots))
 }
 
-#Helper function to identify where the KL minimizer is by finding the root of a given score equation. 
+###################################################################################################
+# true_para: Helper function to identify where the KL minimizer is by finding the root of a given score equation. 
+# Inputs:
+#   - X (matrix): Design matrix.
+#   - beta (numeric vector): True coefficients used for data generation.
+#   - selected (integer vector): Indices of selected covariates.
+#   - type (character): Type of data generation ("poisson", "binomial_mask" - binomial data when fission is used, 
+#       "binomial_split" - binomial data when data spliitting is used, "binomial").
+#   - g_Y (numeric): For binomial data with fission, the fissioned data generated.
+#   - prob (numeric): For binomial data with fission, the parameter tau used with data fissioned.
+#   - split_ind (numeric vector): For binomial data with split, the indicator indicating which points are used to generate f(Y).
+# Outputs:
+#   - ss (numeric vector): KL minimized parameters for the selected model
+###################################################################################################
+
 true_para = function(X, beta, selected, type, g_Y = NA, prob = NA, split_ind = NA){
   # exp_omit = rowSums(X[,selected] %*% beta[selected]) +
   #   colSums(beta[-selected]*(mu[-selected] +
